@@ -4,7 +4,7 @@ Streams data from a file-like descriptor or Unix socket over the network to one 
 
 ### Goals
 
-- [ ]TCP 
+- [ ] TCP 
 - [X] UDP
 - [X] IPv4
 - [X] IPv6 
