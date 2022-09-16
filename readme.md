@@ -13,7 +13,7 @@ Streams data from a file-like descriptor or Unix socket over the network to one 
 - [X] Multicast Support (currently IPv4 only)
 - [X] Minimal (2 dependencies, compiled size ~300kb)
 - [ ] Log data from multiple clients simultaneously
-- [ ] Stream to multiple logging servers simultaneously 
+- [X] Stream to multiple logging servers simultaneously 
 
 
 
