@@ -1,21 +1,21 @@
 # Network Dispatcher
-Streams data from a file-like descriptor or Unix socket over the network to one or more logging servers
+Client/server application to send data from a file descriptor or socket over the network to one or more logging servers
 
-Compatible with:
-
-- [ ] TCP (Planned)
-- [X] UDP
-- [X] IPv4
-- [X] IPv6 
-- [X] Unix
-- [X] Windows (untested)
-
-Features
-- [X] Network data transfer
+### Features
+- [X] Stream arbitrary data over the network
 - [X] Log data from multiple clients simultaneously
 - [X] Stream to multiple logging servers simultaneously 
 - [X] Minimal (2 dependencies, compiled size ~300kb)
 - [X] Extremely fast
+
+### Compatible with:
+
+- [ ] TCP (Planned feature)
+- [X] UDP
+- [X] IPv4
+- [X] IPv6
+- [X] Unix
+- [X] Windows (untested)
 
 
 
