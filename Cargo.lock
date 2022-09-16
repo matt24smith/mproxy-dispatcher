@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "aisdb_receiver"
+name = "dispatcher"
 version = "0.0.1"
 dependencies = [
  "pico-args",
