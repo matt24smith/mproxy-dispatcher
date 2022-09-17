@@ -33,7 +33,10 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
         IpAddr::V6(ref mdns_v6) => {
             #[cfg(debug_assertions)]
             println!("mdns_v6: {}", mdns_v6);
-            let socket = new_socket(&addr)?;
+            let socket = match new_socket(&addr) {
+                Ok(s) => s,
+                Err(e) => panic!("creating new socket {}", e),
+            };
             // bind to all interfaces
             //assert!(socket.set_multicast_if_v6(0).is_ok());
 
@@ -68,7 +71,8 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
 
 pub fn join_unicast(addr: SocketAddr) -> io::Result<UdpSocket> {
     let socket = new_socket(&addr)?;
-    socket.bind(&socket2::SockAddr::from(addr))?;
+    //socket.bind(&socket2::SockAddr::from(addr))?;
+    bind_socket(&socket, &addr)?;
     Ok(socket.into())
 }
 

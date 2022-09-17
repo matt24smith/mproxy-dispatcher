@@ -52,9 +52,6 @@ fn truncate(path: PathBuf) -> Result<String, std::io::Error> {
     Ok(info)
 }
 
-//const TESTDATA: &str = "./tests/test_data_20211101.nm4";
-const TESTDATA: &str = "./tests/test_data_random.bin";
-
 fn test_client(
     pathstr: &str,
     listen_addr: IpAddr,
@@ -62,7 +59,11 @@ fn test_client(
     port: u16,
     multicast: bool,
 ) {
-    let bytesize = truncate(PathBuf::from_str(pathstr).unwrap()).unwrap();
+    let bytesize = truncate(PathBuf::from_str(pathstr).unwrap());
+    let bytesize = match bytesize {
+        Ok(b) => b,
+        Err(e) => panic!("could not fin d{}: {}", pathstr, e),
+    };
     new_server(
         listen_addr,
         port,
@@ -76,9 +77,13 @@ fn test_client(
     println!("log size: {}", bytesize);
 }
 
+//const TESTDATA: &str = "./tests/test_data_20211101.nm4";
+const TESTDATA: &str = "./tests/test_data_random.bin";
+const TESTINGDIR: &str = "./tests/";
+
 #[test]
 fn test_client_socket_stream_unicast_ipv4() {
-    let pathstr = "../testdata/streamoutput_client_ipv4_unicast.log";
+    let pathstr = &[TESTINGDIR, "streamoutput_client_ipv4_unicast.log"].join(&"");
     let listen_addr: IpAddr = Ipv4Addr::new(0, 0, 0, 0).into();
     assert!(!listen_addr.is_multicast());
     let target_addr: IpAddr = Ipv4Addr::new(127, 0, 0, 1).into();
@@ -87,7 +92,7 @@ fn test_client_socket_stream_unicast_ipv4() {
 
 #[test]
 fn test_client_socket_stream_multicast_ipv4() {
-    let pathstr = "../testdata/streamoutput_client_ipv4_multicast.log";
+    let pathstr = &[TESTINGDIR, "streamoutput_client_ipv4_multicast.log"].join(&"");
     let target_addr: IpAddr = Ipv4Addr::new(224, 0, 0, 110).into();
     let listen_addr = target_addr.clone();
     //assert!(listen_addr.is_multicast());
@@ -97,7 +102,7 @@ fn test_client_socket_stream_multicast_ipv4() {
 
 #[test]
 fn test_client_socket_stream_unicast_ipv6() {
-    let pathstr = "../testdata/streamoutput_client_ipv6_unicast.log";
+    let pathstr = &[TESTINGDIR, "streamoutput_client_ipv6_unicast.log"].join(&"");
     let listen_addr: IpAddr = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0).into();
     assert!(!listen_addr.is_multicast());
     let target_addr: IpAddr = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1).into();
@@ -108,7 +113,7 @@ fn test_client_socket_stream_unicast_ipv6() {
 // this test hangs instead of throwing an error
 #[test]
 fn test_client_socket_stream_multicast_ipv6() {
-    let pathstr = "../testdata/streamoutput_client_ipv6_multicast.log";
+    let pathstr = &[TESTINGDIR, "streamoutput_client_ipv6_multicast.log"].join(&"");
     //let listen_addr: IpAddr = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0).into();
     let addr: IpAddr = Ipv6Addr::new(0xFF02, 0, 0, 0, 0, 0, 0, 0x0110).into();
     assert!(addr.is_multicast());
