@@ -44,7 +44,9 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> io::Result<UdpSock
 
         assert!(_a.is_ok());
         assert!(_b.is_ok());
-        assert!(_c.is_ok());
+        if _c.is_err(){ 
+            panic!("error binding socket {:?}", _c);
+        }
     } else {
     }
     Ok(socket.into())

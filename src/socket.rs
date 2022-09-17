@@ -11,7 +11,7 @@ pub fn bind_socket(socket: &Socket, addr: &SocketAddr) -> io::Result<()> {
 
 /// https://msdn.microsoft.com/en-us/library/windows/desktop/ms737550(v=vs.85).aspx
 #[cfg(windows)]
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{Ipv4Addr, Ipv6Addr};
 #[cfg(windows)]
 pub fn bind_socket(socket: &Socket, addr: &SocketAddr) -> io::Result<()> {
     let addr = match addr.ip().is_multicast() {
@@ -32,11 +32,16 @@ pub fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     } else if addr.is_ipv6() {
         Domain::IPV6
     } else {
+        #[cfg(windows)]
+        panic!();
+        #[cfg(unix)]
         Domain::UNIX
     };
 
     let socket = Socket::new(domain, Type::DGRAM, Some(Protocol::UDP))?;
+    #[cfg(unix)]
     socket.set_reuse_port(true)?;
+    #[cfg(unix)]
     socket.set_freebind(true)?;
     socket.set_read_timeout(None)?;
     //#[cfg(debug_assertions)]
