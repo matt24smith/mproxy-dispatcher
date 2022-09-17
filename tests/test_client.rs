@@ -52,7 +52,8 @@ fn truncate(path: PathBuf) -> Result<String, std::io::Error> {
     Ok(info)
 }
 
-const TESTDATA: &str = "../aisdb/tests/test_data_20211101.nm4";
+//const TESTDATA: &str = "./tests/test_data_20211101.nm4";
+const TESTDATA: &str = "./tests/test_data_random.bin";
 
 fn test_client(
     pathstr: &str,
