@@ -115,7 +115,7 @@ pub fn client_socket_stream(
 }
 
 struct ClientArgs {
-    listen_addr: String,
+    server_addr: String,
     path: std::path::PathBuf,
     port: u16,
 }
@@ -135,13 +135,9 @@ fn parse_args() -> Result<ClientArgs, pico_args::Error> {
     let args = ClientArgs {
         port: pargs.value_from_str("--port")?,
         path: pargs.value_from_os_str("--path", parse_path)?,
-        listen_addr: pargs
-            .opt_value_from_str("--listen_addr")?
-            //.unwrap_or("0.0.0.0".to_string())
-            .unwrap_or_else(|| {
-                println!("Warning: no argument provided for --listen_addr. listening on 0.0.0.0");
-                "0.0.0.0".to_string()
-            }),
+        server_addr: pargs.value_from_str("--server_addr")?,
+        //.unwrap_or("0.0.0.0".to_string())
+        //.unwrap_or_else(|| { eprintln!("Warning: no argument provided for --server_addr. listening on 0.0.0.0"); "0.0.0.0".to_string() }),
     };
 
     Ok(args)
@@ -162,8 +158,8 @@ pub fn main() {
             std::process::exit(1);
         }
     };
-    let listenaddr = IpAddr::from_str(&args.listen_addr).unwrap();
-    let listensocketaddr = SocketAddr::new(listenaddr, args.port);
+    let sendaddr = IpAddr::from_str(&args.server_addr).unwrap();
+    let sendsocketaddr = SocketAddr::new(sendaddr, args.port);
 
     let file = File::open(&args.path).unwrap_or_else(|e| {
         panic!(
@@ -173,6 +169,6 @@ pub fn main() {
         )
     });
     let reader = BufReader::new(file);
-    let _ = client_socket_stream(reader, listensocketaddr);
+    let _ = client_socket_stream(reader, sendsocketaddr);
     //let _ = client_socket_stream(file, listensocketaddr);
 }

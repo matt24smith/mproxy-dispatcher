@@ -180,7 +180,7 @@ impl Drop for NotifyServer {
 */
 
 struct ServerArgs {
-    client_addr: Vec<String>,
+    listen_addr: Vec<String>,
     path: String,
     port: u16,
 }
@@ -196,11 +196,11 @@ fn parse_args() -> Result<ServerArgs, pico_args::Error> {
     let args = ServerArgs {
         port: pargs.value_from_str("--port")?,
         path: pargs.value_from_str("--path")?,
-        client_addr: pargs.values_from_str("--client_addr")?,
+        listen_addr: pargs.values_from_str("--listen_addr")?,
         //pargs .opt_value_from_str("--listen_addr")? .unwrap_or("127.0.0.1".to_string()),
     };
-    if args.client_addr.is_empty() {
-        eprintln!("Error: the --client_addr option must be set. Must provide atleast one client IP address");
+    if args.listen_addr.is_empty() {
+        eprintln!("Error: the --listen_addr option must be set. Must provide atleast one client IP address");
     };
 
     Ok(args)
@@ -217,9 +217,9 @@ pub fn main() {
 
     let mut threads = vec![];
 
-    let append_client_addr = args.client_addr.len() > 1;
+    let append_listen_addr = args.listen_addr.len() > 1;
 
-    for hostname in args.client_addr {
+    for hostname in args.listen_addr {
         let hostaddr = IpAddr::from_str(&hostname).unwrap();
         let socketaddr = SocketAddr::new(hostaddr, args.port);
 
@@ -227,7 +227,7 @@ pub fn main() {
         // separate file, with the client IP appended to the filename
         let mut logpath: String = "".to_owned();
         logpath.push_str(&args.path);
-        if append_client_addr {
+        if append_listen_addr {
             for pathsegment in [
                 &args.path,
                 &".".to_string(),
