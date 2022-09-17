@@ -3,8 +3,6 @@ use std::io::BufReader;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use std::thread::sleep;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -15,7 +13,7 @@ use client::client_socket_stream;
 
 #[path = "../src/bin/server.rs"]
 mod server;
-use server::{listener, NotifyServer};
+use server::listener;
 
 fn new_server(listen_addr: IpAddr, port: u16, path: PathBuf, multicast: bool) -> JoinHandle<()> {
     let socketaddr = SocketAddr::new(listen_addr, port);

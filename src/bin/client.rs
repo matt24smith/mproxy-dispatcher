@@ -44,7 +44,7 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> io::Result<UdpSock
 
         assert!(_a.is_ok());
         assert!(_b.is_ok());
-        if _c.is_err(){ 
+        if _c.is_err() {
             panic!("error binding socket {:?}", _c);
         }
     } else {
@@ -138,7 +138,10 @@ fn parse_args() -> Result<ClientArgs, pico_args::Error> {
         listen_addr: pargs
             .opt_value_from_str("--listen_addr")?
             //.unwrap_or("0.0.0.0".to_string())
-            .unwrap_or_else(|| "0.0.0.0".to_string()),
+            .unwrap_or_else(|| {
+                println!("Warning: no argument provided for --listen_addr. listening on 0.0.0.0");
+                "0.0.0.0".to_string()
+            }),
     };
 
     Ok(args)
@@ -162,7 +165,13 @@ pub fn main() {
     let listenaddr = IpAddr::from_str(&args.listen_addr).unwrap();
     let listensocketaddr = SocketAddr::new(listenaddr, args.port);
 
-    let file = File::open(&args.path).unwrap_or_else(|_| panic!("opening {:?}", &args.path));
+    let file = File::open(&args.path).unwrap_or_else(|e| {
+        panic!(
+            "opening {}, {}",
+            &args.path.as_os_str().to_str().unwrap(),
+            e
+        )
+    });
     let reader = BufReader::new(file);
     let _ = client_socket_stream(reader, listensocketaddr);
     //let _ = client_socket_stream(file, listensocketaddr);

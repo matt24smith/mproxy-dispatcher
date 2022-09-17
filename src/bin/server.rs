@@ -4,7 +4,6 @@ use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Barrier};
 use std::thread::JoinHandle;
 
@@ -24,9 +23,6 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
             let socket = new_socket(&addr)?;
             // join multicast channel on all interfaces
             socket.join_multicast_v4(mdns_v4, &Ipv4Addr::new(0, 0, 0, 0))?;
-            //socket.bind(&SockAddr::from(addr))?;
-            //bind_socket(&socket, &addr)?;
-            //println!("server listening on addr: {}", addr);
             let bind_result = bind_socket(&socket, &addr);
             if bind_result.is_err() {
                 panic!("binding to {:?}  {:?}", addr, bind_result);
@@ -51,11 +47,6 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
             // disable ipv4->ipv6 multicast rerouting
             assert!(socket.set_only_v6(true).is_ok());
 
-            //let bind_result = socket.bind(&SockAddr::from(addr));
-            //let socketv6addr = SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), addr.port(), 0, 0);
-            //let bindaddr = SockAddr::from(socketv6addr);
-            //println!("server listening on addr: {:?}", bindaddr);
-            //let bind_result = socket.bind(&bindaddr);
             let listenaddr = SocketAddr::new(
                 IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
                 //IpAddr::V6(Ipv6Addr::new(0xFF02, 0, 0, 0, 0, 0, 0, 0x0110)),
@@ -75,14 +66,13 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
 
 pub fn join_unicast(addr: SocketAddr) -> io::Result<UdpSocket> {
     let socket = new_socket(&addr)?;
-    //socket.bind(&socket2::SockAddr::from(addr))?;
     bind_socket(&socket, &addr)?;
     Ok(socket.into())
 }
 
 /// server socket listener
 pub fn listener(
-    response: String,
+    thread_name: String,
     addr: SocketAddr,
     logfile: PathBuf,
     multicast: bool,
@@ -104,35 +94,34 @@ pub fn listener(
         }
     };
     //let mut writer = BufWriter::with_capacity(1024, file);
-    let listener = match addr.ip().is_multicast() || multicast {
+    let listen_socket = match addr.ip().is_multicast() || multicast {
         false => join_unicast(addr).expect("failed to create socket listener!"),
         true => {match join_multicast(addr) {
             Ok(s) => s,
             Err(e) => panic!("failed to create multicast listener on address {}! are you sure this is a valid multicast channel?\n{:?}", addr, e),
         }},
     };
-
     let join_handle = std::thread::Builder::new()
-        .name(format!("{}:server", response))
+        .name(format!("{}:server", thread_name))
         .spawn(move || {
             #[cfg(debug_assertions)]
-            println!("{}:server: joined: {}", response, addr);
+            println!("{}:server: joined: {}", thread_name, addr);
 
-            #[cfg(test)]
+            //#[cfg(test)]
             upstream_barrier.wait();
 
             #[cfg(debug_assertions)]
-            println!("{}:server: is ready", response);
+            println!("{}:server: is ready", thread_name);
 
             let mut buf = [0u8; 1024]; // receive buffer
             loop {
-                match listener.recv_from(&mut buf[0..]) {
+                match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
                         /*
                         #[cfg(debug_assertions)]
                         println!(
                         "\n{}:server: got bytes: {} from: {}\nmsg: {}",
-                        response,
+                        thread_name,
                         c,
                         _remote_addr,
                         String::from_utf8_lossy(&buf[0..c]),
@@ -145,29 +134,29 @@ pub fn listener(
                         //buf = [0u8; 1024];
 
                         /*
-                        // create a socket to send the response
+                        // create a socket to send the thread_name
                         let responder =
                         new_socket(&remote_addr).expect("failed to create responder");
 
                         let remote_socket = SockAddr::from(remote_addr);
 
-                        // we send the response that was set at the method beginning
+                        // we send the thread_name that was set at the method beginning
                         responder
-                        .send_to(response.as_bytes(), &remote_socket)
+                        .send_to(thread_name.as_bytes(), &remote_socket)
                         .expect("failed to respond");
 
                         #[cfg(debug_assertions)]
                         println!(
-                        "{}:server: sent response {} to: {}",
-                        response, response, _remote_addr
+                        "{}:server: sent thread_name {} to: {}",
+                        thread_name, thread_name, _remote_addr
                         );
                         */
                     }
                     Err(err) => {
                         writer.flush().unwrap();
-                        eprintln!("{}:server: got an error: {}", response, err);
+                        eprintln!("{}:server: got an error: {}", thread_name, err);
                         #[cfg(debug_assertions)]
-                        panic!("{}:server: got an error: {}", response, err);
+                        panic!("{}:server: got an error: {}", thread_name, err);
                     }
                 }
             }
@@ -180,6 +169,7 @@ pub fn listener(
     join_handle
 }
 
+/*
 /// ensure the server is stopped
 pub struct NotifyServer(pub Arc<AtomicBool>);
 impl Drop for NotifyServer {
@@ -187,6 +177,7 @@ impl Drop for NotifyServer {
         self.0.store(true, Ordering::Relaxed);
     }
 }
+*/
 
 struct ServerArgs {
     client_addr: Vec<String>,
@@ -208,6 +199,9 @@ fn parse_args() -> Result<ServerArgs, pico_args::Error> {
         client_addr: pargs.values_from_str("--client_addr")?,
         //pargs .opt_value_from_str("--listen_addr")? .unwrap_or("127.0.0.1".to_string()),
     };
+    if args.client_addr.is_empty() {
+        eprintln!("Error: the --client_addr option must be set. Must provide atleast one client IP address");
+    };
 
     Ok(args)
 }
@@ -221,30 +215,39 @@ pub fn main() {
         }
     };
 
+    let mut threads = vec![];
+
+    let append_client_addr = args.client_addr.len() > 1;
+
     for hostname in args.client_addr {
         let hostaddr = IpAddr::from_str(&hostname).unwrap();
         let socketaddr = SocketAddr::new(hostaddr, args.port);
-        let mut logpath: String = "".to_owned();
 
-        for pathsegment in [
-            &args.path,
-            &socketaddr.ip().to_string(),
-            &".".to_string(),
-            &socketaddr.port().to_string(),
-        ] {
-            logpath.push_str(pathsegment);
+        // if listening to multiple clients at once, log each client to a
+        // separate file, with the client IP appended to the filename
+        let mut logpath: String = "".to_owned();
+        logpath.push_str(&args.path);
+        if append_client_addr {
+            for pathsegment in [
+                &args.path,
+                &".".to_string(),
+                &socketaddr.ip().to_string(),
+                //&".".to_string(),
+                //&socketaddr.port().to_string(),
+            ] {
+                logpath.push_str(pathsegment);
+            }
         }
 
-        println!(
-            "logging transmissions from {} to {}",
-            hostaddr.to_string(),
-            logpath
-        );
-        listener(
+        println!("logging transmissions from {} to {}", hostaddr, logpath);
+        threads.push(listener(
             hostaddr.to_string(),
             socketaddr,
             PathBuf::from_str(&logpath).unwrap(),
             socketaddr.ip().is_multicast(),
-        );
+        ));
+    }
+    for thread in threads {
+        let _ = thread.join().unwrap();
     }
 }
