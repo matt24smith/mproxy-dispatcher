@@ -39,15 +39,18 @@ pub fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     };
 
     let socket = Socket::new(domain, Type::DGRAM, Some(Protocol::UDP))?;
-    #[cfg(unix)]
-    socket.set_reuse_port(true)?;
-    #[cfg(unix)]
-    socket.set_freebind(true)?;
-    socket.set_read_timeout(None)?;
-    //#[cfg(debug_assertions)]
-    //use std::time::Duration;
-    //#[cfg(debug_assertions)]
-    //socket.set_read_timeout(Some(Duration::from_millis(100)))?;
 
+    #[cfg(unix)]
+    if let Err(e) = socket.set_reuse_port(true) {
+        eprintln!("could not set reusable port! are you running in WSL? {}", e);
+    }
+    #[cfg(unix)]
+    if let Err(e) = socket.set_freebind(true) {
+        eprintln!(
+            "could not set freebind socket! are you running in WSL? {}",
+            e
+        );
+    }
+    socket.set_read_timeout(None)?;
     Ok(socket)
 }

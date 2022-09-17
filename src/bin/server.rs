@@ -25,8 +25,12 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
             // join multicast channel on all interfaces
             socket.join_multicast_v4(mdns_v4, &Ipv4Addr::new(0, 0, 0, 0))?;
             //socket.bind(&SockAddr::from(addr))?;
-            bind_socket(&socket, &addr)?;
+            //bind_socket(&socket, &addr)?;
             //println!("server listening on addr: {}", addr);
+            let bind_result = bind_socket(&socket, &addr);
+            if bind_result.is_err() {
+                panic!("binding to {:?}  {:?}", addr, bind_result);
+            }
 
             Ok(socket.into())
         }
@@ -61,7 +65,7 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
             );
             let bind_result = bind_socket(&socket, &listenaddr);
             if bind_result.is_err() {
-                panic!("binding to {:?}  {:?}", addr, bind_result);
+                panic!("binding to {:?}  {:?}", listenaddr, bind_result);
             }
 
             Ok(socket.into())
