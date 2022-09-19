@@ -135,6 +135,11 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
             }
         };
         targets.push((target_addr, target_socket));
+        println!(
+            "logging {}: listening for {}",
+            &path.as_os_str().to_str().unwrap(),
+            server_addr,
+        );
     }
     //#[cfg(debug_assertions)]
     //println!("opening {:?} ...", &path);
@@ -146,9 +151,9 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
         .open(&path)
         .unwrap_or_else(|e| panic!("opening {}, {}", path.as_os_str().to_str().unwrap(), e));
 
-    let mut output_buffer = BufWriter::new(stdout());
     let mut reader = BufReader::new(file);
     let mut buf = vec![0u8; 1024];
+    let mut output_buffer = BufWriter::new(stdout());
 
     //Builder::new() .name(target_socket_addr.to_string()) .spawn(move || {
     while let Ok(c) = reader.read(&mut buf) {
@@ -159,18 +164,19 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
 
         //#[cfg(debug_assertions)]
         //println!("\n{} client: {:?}", c, String::from_utf8_lossy(&buf[..c]));
-        if tee {
-            let o = output_buffer
-                .write(&buf[0..c])
-                .expect("writing to output buffer");
-            assert!(c == o);
-        }
         for (target_addr, target_socket) in &targets {
             target_socket
                 .send_to(&buf[0..c], &target_addr)
                 .expect("sending to server socket");
         }
         //}) .unwrap()
+        if tee {
+            let o = output_buffer
+                .write(&buf[0..c])
+                .expect("writing to output buffer");
+            output_buffer.flush().unwrap();
+            assert!(c == o);
+        }
     }
     Ok(())
 }
