@@ -68,8 +68,6 @@ fn join_multicast(addr: SocketAddr) -> io::Result<UdpSocket> {
             Ok(socket.into())
         }
         IpAddr::V6(ref mdns_v6) => {
-            #[cfg(debug_assertions)]
-            println!("mdns_v6: {}", mdns_v6);
             let socket = match new_socket(&addr) {
                 Ok(s) => s,
                 Err(e) => panic!("creating new socket {}", e),
@@ -192,7 +190,6 @@ pub fn listener(addr: String, logfile: PathBuf) -> JoinHandle<()> {
     join_handle
 }
 
-#[allow(dead_code)]
 pub fn main() {
     let args = match parse_args() {
         Ok(a) => a,
@@ -208,7 +205,7 @@ pub fn main() {
 
     for hostname in args.listen_addr {
         // if listening to multiple clients at once, log each client to a
-        // separate file, with the client IP appended to the filename
+        // separate file, with the client address appended to the filename
         let mut logpath: String = "".to_owned();
         logpath.push_str(&args.path);
         if append_listen_addr {

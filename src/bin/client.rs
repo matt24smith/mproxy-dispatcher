@@ -178,7 +178,6 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
     Ok(())
 }
 
-#[allow(dead_code)]
 pub fn main() {
     let args = match parse_args() {
         Ok(a) => a,
@@ -187,13 +186,5 @@ pub fn main() {
             exit(1);
         }
     };
-
-    //let mut threads = vec![];
-
-    //for hostname in args.server_addr {
-    //println!( "logging {}: listening for {}", &args.path.as_os_str().to_str().unwrap(), hostname);
-    //threads.push(
     let _ = client_socket_stream(&args.path, args.server_addrs, args.tee);
-    //);
-    //}
 }
