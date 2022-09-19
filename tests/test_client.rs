@@ -33,7 +33,7 @@ fn truncate(path: PathBuf) -> i32 {
 fn test_client(pathstr: &str, listen_addr: String, target_addr: String, tee: bool) {
     let bytesize = truncate(PathBuf::from_str(pathstr).unwrap());
     let _l = listener(listen_addr, PathBuf::from_str(pathstr).unwrap());
-    let _c = client_socket_stream(&PathBuf::from(TESTDATA), target_addr, tee);
+    let _c = client_socket_stream(&PathBuf::from(TESTDATA), vec![target_addr], tee);
     println!("log size: {}", bytesize);
     assert!(bytesize > 0);
 }

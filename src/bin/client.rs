@@ -5,7 +5,6 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 use std::path::PathBuf;
 use std::process::exit;
-use std::thread::{Builder, JoinHandle};
 
 #[path = "../socket.rs"]
 pub mod socket;
@@ -30,7 +29,7 @@ FLAGS:
 /// command line arguments
 struct ClientArgs {
     path: PathBuf,
-    server_addr: Vec<String>,
+    server_addrs: Vec<String>,
     tee: bool,
 }
 
@@ -49,7 +48,7 @@ fn parse_args() -> Result<ClientArgs, pico_args::Error> {
 
     let args = ClientArgs {
         path: pargs.value_from_os_str("--path", parse_path)?,
-        server_addr: pargs.values_from_str("--server_addr")?,
+        server_addrs: pargs.values_from_str("--server_addr")?,
         tee,
     };
 
@@ -122,15 +121,21 @@ pub fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
 }
 
 //pub fn client_socket_stream(path: &PathBuf, server_addr: String, tee: bool) -> ioResult<UdpSocket> {
-pub fn client_socket_stream(path: &PathBuf, server_addr: String, tee: bool) -> JoinHandle<()> {
-    let target_socket_addr: SocketAddr = server_addr.parse().expect("parsing server address");
+pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool) -> ioResult<()> {
+    //pub fn client_socket_stream(path: &PathBuf, server_addr: String, tee: bool) -> JoinHandle<()> {
 
-    let target_socket = match target_socket_addr.is_ipv4() {
-        true => new_sender(&target_socket_addr).expect("creating ipv4 send socket!"),
-        false => {
-            client_check_ipv6_interfaces(&target_socket_addr).expect("creating ipv6 send socket!")
-        }
-    };
+    let mut targets = vec![];
+
+    for server_addr in server_addrs {
+        let target_addr: SocketAddr = server_addr.parse().expect("parsing server address");
+        let target_socket = match target_addr.is_ipv4() {
+            true => new_sender(&target_addr).expect("creating ipv4 send socket!"),
+            false => {
+                client_check_ipv6_interfaces(&target_addr).expect("creating ipv6 send socket!")
+            }
+        };
+        targets.push((target_addr, target_socket));
+    }
     //#[cfg(debug_assertions)]
     //println!("opening {:?} ...", &path);
 
@@ -145,30 +150,29 @@ pub fn client_socket_stream(path: &PathBuf, server_addr: String, tee: bool) -> J
     let mut reader = BufReader::new(file);
     let mut buf = vec![0u8; 1024];
 
-    Builder::new()
-        .name(target_socket_addr.to_string())
-        .spawn(move || {
-            while let Ok(c) = reader.read(&mut buf) {
-                if c == 0 {
-                    //eprintln!("encountered zero-length message!");
-                    break;
-                }
+    //Builder::new() .name(target_socket_addr.to_string()) .spawn(move || {
+    while let Ok(c) = reader.read(&mut buf) {
+        if c == 0 {
+            //eprintln!("encountered zero-length message!");
+            break;
+        }
 
-                //#[cfg(debug_assertions)]
-                //println!("\n{} client: {:?}", c, String::from_utf8_lossy(&buf[..c]));
-                if tee {
-                    let o = output_buffer
-                        .write(&buf[0..c])
-                        .expect("writing to output buffer");
-                    assert!(c == o);
-                }
-
-                target_socket
-                    .send_to(&buf[..c], &target_socket_addr)
-                    .expect("sending to server socket");
-            }
-        })
-        .unwrap()
+        //#[cfg(debug_assertions)]
+        //println!("\n{} client: {:?}", c, String::from_utf8_lossy(&buf[..c]));
+        if tee {
+            let o = output_buffer
+                .write(&buf[0..c])
+                .expect("writing to output buffer");
+            assert!(c == o);
+        }
+        for (target_addr, target_socket) in &targets {
+            target_socket
+                .send_to(&buf[0..c], &target_addr)
+                .expect("sending to server socket");
+        }
+        //}) .unwrap()
+    }
+    Ok(())
 }
 
 #[allow(dead_code)]
@@ -181,17 +185,12 @@ pub fn main() {
         }
     };
 
-    let mut threads = vec![];
+    //let mut threads = vec![];
 
-    for hostname in args.server_addr {
-        println!(
-            "logging {}: listening for {}",
-            &args.path.as_os_str().to_str().unwrap(),
-            hostname
-        );
-        threads.push(client_socket_stream(&args.path, hostname, args.tee));
-    }
-    for thread in threads {
-        let _ = thread.join().unwrap();
-    }
+    //for hostname in args.server_addr {
+    //println!( "logging {}: listening for {}", &args.path.as_os_str().to_str().unwrap(), hostname);
+    //threads.push(
+    let _ = client_socket_stream(&args.path, args.server_addrs, args.tee);
+    //);
+    //}
 }
