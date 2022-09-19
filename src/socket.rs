@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 
 use socket2::{Domain, Protocol, Socket, Type};
 
-/// On unix bind to the multicast address
 #[cfg(unix)]
 pub fn bind_socket(socket: &Socket, addr: &SocketAddr) -> io::Result<()> {
     socket.bind(&socket2::SockAddr::from(*addr))
