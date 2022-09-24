@@ -1,7 +1,6 @@
 use std::io::{BufWriter, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::process::exit;
-
 use std::thread::{spawn, JoinHandle};
 
 extern crate pico_args;
@@ -52,7 +51,7 @@ fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {
     };
     let remaining = pargs.finish();
     if !remaining.is_empty() {
-        println!("Warning: unused arguments {:#?}", remaining)
+        println!("Warning: unused arguments {:?}", remaining)
     }
 
     Ok(args)
@@ -81,12 +80,15 @@ fn handle_client(downstream: TcpStream, multicast_addr: String) {
                 let _count_output = tcp_writer.write(&buf[0..count_input]);
             }
             Err(err) => {
+                #[cfg(debug_assertions)]
                 eprintln!("reverse_proxy_client: got an error: {}", err);
-                panic!("reverse_proxy_client: got an error: {}", err);
+                break;
             }
         }
         if let Err(e) = tcp_writer.flush() {
-            panic!("sending to socket {:#?}: {}", multicast_socket, e);
+            #[cfg(debug_assertions)]
+            eprintln!("exiting {:?}: {}", multicast_socket, e);
+            break;
         }
     }
 }
