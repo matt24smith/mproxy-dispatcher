@@ -8,6 +8,7 @@ data over the network.
   - Send, proxy, reverse-proxy, and receive to/from multiple endpoints simultaneously
   - Stream multiplexing and aggregation
   - [Multicast](https://en.wikipedia.org/wiki/Multicast) reverse-proxy IP routing
+  - Hostname resolution
 - [X] Fast
   - 500+ Mbps read/transfer/write speed via UDP
 - [X] Minimal 
@@ -32,7 +33,7 @@ The `--tee`/`-t` flag may be used to copy input to stdout.
 ### Client
 
 Stream data from the client to logging servers. The `--server_addr` option may 
-be repeated for multiple server hosts.
+be repeated for multiple server hosts. To accept input from stdin, use `--path "-"`
 
 ```
 cargo run --bin client -- \
