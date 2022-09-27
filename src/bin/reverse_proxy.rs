@@ -30,10 +30,10 @@ FLAGS:
 "#;
 
 pub struct ReverseProxyArgs {
-    udp_listen_addr: String,
-    multicast_addr: String,
-    tcp_listen_addr: String,
-    tee: bool,
+    pub udp_listen_addr: String,
+    pub multicast_addr: String,
+    pub tcp_listen_addr: String,
+    pub tee: bool,
 }
 
 fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {

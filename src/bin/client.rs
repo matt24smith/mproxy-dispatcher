@@ -180,7 +180,13 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
                 &path.display(),
             );
             break;
+        } else if c == 1 && String::from_utf8(buf[0..c].to_vec()).unwrap() == "\n".to_string() {
+            // skip empty lines
+            continue;
         }
+
+        //#[cfg(debug_assertions)]
+        //println!("\nc:{} |{:?}|", c, String::from_utf8(buf[0..c].to_vec()));
 
         for (target_addr, target_socket) in &targets {
             target_socket
@@ -191,12 +197,10 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
             let _o = output_buffer
                 .write(&buf[0..c])
                 .expect("writing to output buffer");
+            output_buffer.flush().unwrap();
             #[cfg(debug_assertions)]
             assert!(c == _o);
         }
-    }
-    if tee {
-        output_buffer.flush().unwrap();
     }
     Ok(())
 }

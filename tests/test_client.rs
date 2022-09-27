@@ -61,14 +61,14 @@ fn test_client_socket_stream_multicast_ipv4() {
 fn test_client_socket_stream_unicast_ipv6() {
     let pathstr = &[TESTINGDIR, "streamoutput_client_ipv6_unicast.log"].join(&"");
     let listen_addr = "[::1]:9912".to_string();
-    let target_addr = "[::0]:9912".to_string();
+    let target_addr = "[::1]:9912".to_string();
     test_client(pathstr, listen_addr, target_addr, false)
 }
 
 #[test]
 fn test_client_socket_stream_multicast_ipv6() {
     let pathstr = &[TESTINGDIR, "streamoutput_client_ipv6_multicast.log"].join(&"");
-    let listen_addr = "[ff02::0]:9913".to_string();
+    let listen_addr = "[ff02::1]:9913".to_string();
     let target_addr = "[ff02::1]:9913".to_string();
     test_client(pathstr, listen_addr, target_addr, false)
 }
