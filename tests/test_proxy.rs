@@ -1,23 +1,26 @@
-use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 
-#[path = "../src/bin/proxy.rs"]
-pub mod proxy;
-use proxy::{proxy_gateway, proxy_thread};
+#[path = "./config.rs"]
+mod config;
+use config::{TESTDATA, TESTINGDIR};
 
-#[path = "../src/bin/server.rs"]
+#[path = "../src/proxy.rs"]
+pub mod proxy;
+use proxy::proxy_thread;
+
+#[path = "../src/server.rs"]
 pub mod server;
 use server::listener;
 
-#[path = "../src/bin/client.rs"]
+#[path = "../src/client.rs"]
 pub mod client;
 use client::client_socket_stream;
 
 #[path = "./test_client.rs"]
 pub mod test_client;
-use test_client::{truncate, TESTDATA, TESTINGDIR};
+use test_client::truncate;
 
 #[test]
 fn test_proxy_thread_ipv4() {

@@ -3,21 +3,23 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::thread::sleep;
-use std::thread::Builder;
 use std::time::Duration;
-use std::time::Instant;
 
-#[path = "../src/bin/server.rs"]
+#[path = "./config.rs"]
+mod config;
+use config::TESTINGDIR;
+
+#[path = "../src/server.rs"]
 pub mod server;
 use server::listener;
 
-#[path = "../src/bin/client.rs"]
+#[path = "../src/client.rs"]
 pub mod client;
 use client::{client_check_ipv6_interfaces, client_socket_stream, new_sender};
 
 #[path = "./test_client.rs"]
 pub mod test_client;
-use test_client::{truncate, TESTINGDIR};
+use test_client::truncate;
 
 fn test_server_listener(addr: String, logfile: PathBuf) {
     // start server
@@ -46,36 +48,43 @@ fn test_server_listener(addr: String, logfile: PathBuf) {
 #[test]
 fn test_server_ipv4_unicast() {
     let ipv4 = "127.0.0.1:9900".to_string();
-    let logfile: PathBuf = PathBuf::from_str("../testdata/streamoutput_ipv4_unicast.log").unwrap();
+    let pathstr = &[TESTINGDIR, "streamoutput_ipv4_unicast.log"].join(&"");
+    let logfile: PathBuf = PathBuf::from_str(pathstr).unwrap();
     test_server_listener(ipv4, logfile);
 }
 
 #[test]
 fn test_server_ipv4_multicast() {
     let ipv4 = "224.0.0.2:9901".to_string();
-    let logfile: PathBuf =
-        PathBuf::from_str("../testdata/streamoutput_ipv4_multicast.log").unwrap();
+    let pathstr = &[TESTINGDIR, "streamoutput_ipv4_multicast.log"].join(&"");
+    let logfile: PathBuf = PathBuf::from_str(pathstr).unwrap();
     test_server_listener(ipv4, logfile);
 }
 
 #[test]
 fn test_server_ipv6_unicast() {
     let listen = "[::0]:9902".to_string();
-    let logfile: PathBuf = PathBuf::from_str("../testdata/streamoutput_ipv6_unicast.log").unwrap();
+    let pathstr = &[TESTINGDIR, "streamoutput_ipv6_unicast.log"].join(&"");
+    let logfile: PathBuf = PathBuf::from_str(pathstr).unwrap();
     test_server_listener(listen, logfile);
 }
 
 #[test]
 fn test_server_ipv6_multicast() {
     let listen = "[ff02::1]:9903".to_string();
-    let logfile: PathBuf =
-        PathBuf::from_str("../testdata/streamoutput_ipv6_multicast.log").unwrap();
+    let pathstr = &[TESTINGDIR, "streamoutput_ipv6_multicast.log"].join(&"");
+    let logfile: PathBuf = PathBuf::from_str(pathstr).unwrap();
     test_server_listener(listen, logfile);
 }
 
 #[test]
 fn test_server_multiple_clients_single_channel() {
-    let pathstr_1 = "../testdata/streamoutput_client_ipv6_multiclient_samefile.log";
+    //let pathstr_1 = "./testdata/streamoutput_client_ipv6_multiclient_samefile.log";
+    let pathstr_1 = &[
+        TESTINGDIR,
+        "streamoutput_client_ipv6_multiclient_samefile.log",
+    ]
+    .join(&"");
     File::create(&pathstr_1).expect("truncating file");
     sleep(Duration::from_millis(15));
     let listen_addr_1 = "[::]:9904".to_string();
@@ -88,7 +97,12 @@ fn test_server_multiple_clients_single_channel() {
 
 #[test]
 fn test_server_multiple_clients_dual_channel() {
-    let pathstr_1 = "../testdata/streamoutput_client_ipv6_multiclient_different_channels.log";
+    //let pathstr_1 = "./testdata/streamoutput_client_ipv6_multiclient_different_channels.log";
+    let pathstr_1 = &[
+        TESTINGDIR,
+        "streamoutput_client_ipv6_multiclient_different_channels.log",
+    ]
+    .join(&"");
     File::create(&pathstr_1).expect("truncating file");
     sleep(Duration::from_millis(15));
     let listen_addr_1 = "[::]:9905".to_string();

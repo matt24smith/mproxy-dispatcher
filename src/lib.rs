@@ -1,11 +1,11 @@
-#[path = "./bin/server.rs"]
+#[path = "./server.rs"]
 pub mod server;
 
-#[path = "./bin/client.rs"]
+#[path = "./client.rs"]
 pub mod client;
 
-#[path = "./bin/proxy.rs"]
+#[path = "./proxy.rs"]
 pub mod proxy;
 
-#[path = "./bin/reverse_proxy.rs"]
+#[path = "./reverse_proxy.rs"]
 pub mod reverse_proxy;

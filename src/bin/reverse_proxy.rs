@@ -1,18 +1,26 @@
-use std::io::{BufWriter, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+//use std::io::{BufWriter, Write};
+//use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::process::exit;
-use std::thread::{spawn, JoinHandle};
+//use std::thread::{spawn, JoinHandle};
 
 extern crate pico_args;
 use pico_args::Arguments;
 
-#[path = "./server.rs"]
-pub mod server;
-use server::join_multicast;
+//#[path = "../reverse_proxy_mod.rs"]
+//mod dispatcher;
 
-#[path = "./proxy.rs"]
-pub mod proxy;
+//#[path = "./server.rs"]
+//pub mod server;
+//use dispatcher::server::join_multicast;
+
+#[path = "../proxy.rs"]
+mod proxy;
 use proxy::proxy_thread;
+//use dispatcher::reverse_proxy::reverse_proxy_tcp;
+
+#[path = "../reverse_proxy.rs"]
+mod reverse_proxy;
+use reverse_proxy::reverse_proxy_tcp;
 
 const HELP: &str = r#"
 DISPATCH: reverse_proxy 
@@ -57,64 +65,6 @@ fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {
     Ok(args)
 }
 
-fn handle_client(downstream: TcpStream, multicast_addr: String) {
-    let multicast_addr = multicast_addr
-        .to_socket_addrs()
-        .unwrap()
-        .next()
-        .expect("parsing socket address");
-    if !multicast_addr.ip().is_multicast() {
-        panic!("not a multicast address {}", multicast_addr);
-    }
-    let multicast_socket = join_multicast(multicast_addr).unwrap_or_else(|e| {
-        panic!("joining multicast socket {}", e);
-    });
-    // multicast_socket.set_broadcast(true).unwrap();
-
-    let mut buf = [0u8; 32768]; // receive buffer
-    let mut tcp_writer = BufWriter::new(downstream);
-
-    loop {
-        match multicast_socket.recv_from(&mut buf[0..]) {
-            Ok((count_input, _remote_addr)) => {
-                let _count_output = tcp_writer.write(&buf[0..count_input]);
-            }
-            Err(err) => {
-                eprintln!("reverse_proxy_client: got an error: {}", err);
-                break;
-            }
-        }
-        if let Err(e) = tcp_writer.flush() {
-            eprintln!("exiting {:?}: {}", multicast_socket, e);
-            break;
-        }
-    }
-}
-
-/// forward UDP socket stream to downstream TCP clients
-///
-/// Spawns a new thread for each client.
-/// An additional thread will be spawned to listen for upstream_addr, which
-/// is rebroadcasted over the multicast channel. Client handler threads
-/// subscribing to this channel will then forward UDP packet information
-/// downstream to any clients connected via TCP
-pub fn reverse_proxy_tcp(multicast_addr: String, tcp_listen_addr: String) -> JoinHandle<()> {
-    // UDP multicast listener -> TCP sender
-    // accept new client connections on TCP listening address,
-    // and forward messages received over the UDP multicast channel
-    spawn(move || {
-        let listener = TcpListener::bind(tcp_listen_addr).unwrap();
-        for stream in listener.incoming() {
-            #[cfg(debug_assertions)]
-            println!("new client {:?}", stream);
-            let multicast_addr = multicast_addr.clone();
-            let _tcp_client = spawn(move || {
-                handle_client(stream.unwrap(), multicast_addr);
-            });
-        }
-    })
-}
-
 pub fn main() {
     let args = match parse_args() {
         Ok(a) => a,
@@ -133,5 +83,5 @@ pub fn main() {
     );
 
     let r_proxy = reverse_proxy_tcp(args.multicast_addr, args.tcp_listen_addr);
-    let _ = r_proxy.join().unwrap();
+    r_proxy.join().unwrap();
 }
