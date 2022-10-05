@@ -5,8 +5,8 @@ authors = [ "Matt Smith matt24smith@gmail.com",]
 edition = "2021"
 description = "Network dispatcher client and logging server"
 
-#[lib]
-#crate-type = ["lib"]
+[lib]
+crate-type = ["lib"]
 
 [[bin]]
 name = "client"

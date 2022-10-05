@@ -66,8 +66,8 @@ fn test_client_socket_stream_unicast_ipv6() {
 #[test]
 fn test_client_socket_stream_multicast_ipv6() {
     let pathstr = &[TESTINGDIR, "streamoutput_client_ipv6_multicast.log"].join(&"");
-    let listen_addr = "[ff02::22]:9913".to_string();
-    let target_addr = "[ff02::22]:9913".to_string();
+    let listen_addr = "[ff02::2]:9913".to_string();
+    let target_addr = "[ff02::2]:9913".to_string();
     test_client(pathstr, listen_addr, target_addr, false)
 }
 
