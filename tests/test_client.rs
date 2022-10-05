@@ -111,6 +111,11 @@ fn test_client_bitrate() {
     let target_addr = "127.0.0.1:9917".to_string();
     let listen_addr = "0.0.0.0:9917".to_string();
 
+    use dispatcher::server::join_unicast;
+    use std::net::ToSocketAddrs;
+    use std::thread::Builder;
+    use std::time::Instant;
+
     let listen_socket =
         join_unicast(listen_addr.to_socket_addrs().unwrap().next().unwrap()).unwrap();
 

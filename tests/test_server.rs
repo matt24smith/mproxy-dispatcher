@@ -119,6 +119,10 @@ fn test_server_multiple_clients_dual_channel() {
 #[cfg(not(debug_assertions))]
 #[test]
 fn test_server_bitrate() {
+    use std::net::ToSocketAddrs;
+    use std::thread::Builder;
+    use std::time::Instant;
+
     let pathstr = &[TESTINGDIR, "streamoutput_server_test_largefile.log"].join(&"");
     truncate(PathBuf::from_str(pathstr).unwrap());
     let target_addr = "127.0.0.1:9907".to_string();
