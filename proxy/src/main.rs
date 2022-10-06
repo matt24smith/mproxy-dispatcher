@@ -3,8 +3,6 @@ use std::process::exit;
 extern crate pico_args;
 use pico_args::Arguments;
 
-#[path = "../proxy.rs"]
-mod proxy;
 use proxy::proxy_gateway;
 
 const HELP: &str = r#"

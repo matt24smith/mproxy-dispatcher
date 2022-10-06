@@ -2,12 +2,10 @@ use std::io::{stdout, BufWriter, Write};
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::thread::{Builder, JoinHandle};
 
-#[path = "./client.rs"]
-mod client;
+extern crate client;
 use client::{client_check_ipv6_interfaces, new_sender};
 
-#[path = "./server.rs"]
-mod server;
+extern crate server;
 use server::{join_multicast, join_unicast};
 
 pub fn new_listen_socket(listen_addr: &String) -> UdpSocket {

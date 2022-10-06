@@ -5,9 +5,8 @@ use std::process::exit;
 extern crate pico_args;
 use pico_args::Arguments;
 
-#[path = "../client.rs"]
-mod client;
-use client::client_socket_stream;
+pub mod lib;
+use crate::lib::client_socket_stream;
 
 const HELP: &str = r#"
 DISPATCH: CLIENT

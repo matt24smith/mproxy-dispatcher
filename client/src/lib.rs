@@ -1,14 +1,15 @@
-//use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Result as ioResult, Write};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
-//use std::process::exit;
 use std::str::FromStr;
 
-#[path = "./socket.rs"]
-mod socket;
-use socket::{bind_socket, new_socket};
+//#[path = "../socket.rs"]
+//mod socket;
+//use socket::{bind_socket, new_socket};
+//use crate::{bind_socket, new_socket};
+extern crate dispatch;
+use dispatch::{bind_socket, new_socket};
 
 /// new upstream socket
 /// socket will allow any downstream IP i.e. 0.0.0.0
@@ -58,20 +59,19 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket
 
 pub fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
     for i in 0..32 {
-        #[cfg(debug_assertions)]
-        println!("checking interface {}", i);
+        //#[cfg(debug_assertions)]
+        //println!("checking interface {}", i);
         let socket = new_sender_ipv6(addr, i)?;
         let result = socket.send_to(b"", addr);
-        match result {
-            Ok(_r) => {
-                //
-                #[cfg(debug_assertions)]
-                println!("opened interface {}:\t{}", i, _r);
-                return Ok(socket);
-            }
-            Err(e) => {
-                eprintln!("err: could not open interface {}:\t{:?}", i, e)
-            }
+        if let Ok(_r) = result {
+            //Ok(_r) => {
+            //#[cfg(debug_assertions)]
+            //println!("opened interface {}:\t{}", i, _r);
+            return Ok(socket);
+            //}
+            //Err(e) => {
+            //    eprintln!("err: could not open interface {}:\t{:?}", i, e)
+            //}
         }
     }
     panic!("No suitable network interfaces were found!");

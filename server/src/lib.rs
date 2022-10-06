@@ -2,14 +2,10 @@ use std::fs::OpenOptions;
 use std::io::{stdout, BufWriter, Result as ioResult, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
-//use std::process::exit;
-//use std::str::FromStr;
 use std::thread::{Builder, JoinHandle};
 
-//use dispatcher::socket::{bind_socket, new_socket};
-#[path = "./socket.rs"]
-mod socket;
-use socket::{bind_socket, new_socket};
+extern crate dispatch;
+use dispatch::{bind_socket, new_socket};
 
 /// server: client socket handler
 /// binds a new socket connection on the network multicast channel
@@ -97,7 +93,8 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
     let mut output_buffer = BufWriter::new(stdout());
 
     let listen_socket = match addr.ip().is_multicast() {
-        false => join_unicast(addr).expect(format!("failed to create unicast socket listener! {}", addr).as_str()),
+        //false => join_unicast(addr).expect(format!("failed to create unicast socket listener! {}", addr).as_str()),
+        false => join_unicast(addr).unwrap_or_else(|_| panic!("failed to create unicast socket listener! {}", addr)),
         true => {match join_multicast(addr) {
             Ok(s) => s,
             Err(e) => panic!("failed to create multicast listener on address {}! are you sure this is a valid multicast channel?\n{:?}", addr, e),

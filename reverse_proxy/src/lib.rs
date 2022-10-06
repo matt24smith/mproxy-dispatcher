@@ -4,8 +4,9 @@ use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread::{spawn, JoinHandle};
 
 //use crate::proxy::proxy_thread;
-#[path = "./server.rs"]
-mod server;
+//#[path = "./server.rs"]
+//mod server;
+extern crate server;
 use server::join_multicast;
 
 fn handle_client(downstream: TcpStream, multicast_addr: String) {

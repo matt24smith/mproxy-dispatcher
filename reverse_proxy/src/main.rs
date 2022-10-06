@@ -1,25 +1,11 @@
-//use std::io::{BufWriter, Write};
-//use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::process::exit;
-//use std::thread::{spawn, JoinHandle};
 
 extern crate pico_args;
 use pico_args::Arguments;
 
-//#[path = "../reverse_proxy_mod.rs"]
-//mod dispatcher;
-
-//#[path = "./server.rs"]
-//pub mod server;
-//use dispatcher::server::join_multicast;
-
-#[path = "../proxy.rs"]
-mod proxy;
+extern crate proxy;
 use proxy::proxy_thread;
-//use dispatcher::reverse_proxy::reverse_proxy_tcp;
 
-#[path = "../reverse_proxy.rs"]
-mod reverse_proxy;
 use reverse_proxy::reverse_proxy_tcp;
 
 const HELP: &str = r#"

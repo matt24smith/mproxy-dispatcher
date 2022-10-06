@@ -5,9 +5,8 @@ use std::str::FromStr;
 extern crate pico_args;
 use pico_args::Arguments;
 
-#[path = "../server.rs"]
-mod server;
-use server::listener;
+pub mod lib;
+pub use crate::lib::listener;
 
 const HELP: &str = r#"
 DISPATCH: SERVER
