@@ -6,25 +6,17 @@ version = 3
 name = "client"
 version = "0.1.0"
 dependencies = [
- "dispatch",
  "pico-args",
  "server",
- "socket2",
+ "socket_dispatch",
  "testconfig",
 ]
 
 [[package]]
-name = "dispatch"
-version = "0.1.0"
-dependencies = [
- "socket2",
-]
-
-[[package]]
 name = "libc"
-version = "0.2.133"
+version = "0.2.134"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0f80d65747a3e43d1596c7c5492d95d5edddaabd45a7fcdb02b95f644164966"
+checksum = "329c933548736bc49fd575ee68c89e8be4d260064184389a5b77517cddd99ffb"
 
 [[package]]
 name = "pico-args"
@@ -58,8 +50,8 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "client",
- "dispatch",
  "pico-args",
+ "socket_dispatch",
  "testconfig",
 ]
 
@@ -71,6 +63,13 @@ checksum = "02e2d2db9033d13a1567121ddd7a095ee144db4e1ca1b1bda3419bc0da294ebd"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "socket_dispatch"
+version = "0.1.0"
+dependencies = [
+ "socket2",
 ]
 
 [[package]]
