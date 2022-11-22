@@ -1,55 +1,20 @@
-use std::io::{stdout, BufWriter, Write};
-use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
+use std::io::{stdout, BufWriter, Read, Write};
+use std::net::{SocketAddr, TcpStream, UdpSocket};
+use std::thread::spawn;
 use std::thread::{Builder, JoinHandle};
 
-extern crate socket_dispatch;
+use client::target_socket_interface;
+use server::upstream_socket_interface;
 use socket_dispatch::BUFSIZE;
 
-extern crate client;
-use client::{client_check_ipv6_interfaces, new_sender};
-
-extern crate server;
-use server::{join_multicast, join_unicast};
-
-pub fn new_listen_socket(listen_addr: &String) -> UdpSocket {
-    let listen_addr = listen_addr
-        .to_socket_addrs()
-        .unwrap()
-        .next()
-        .expect("parsing socket address");
-    match listen_addr.ip().is_multicast() {
-        false => join_unicast(listen_addr).expect("failed to create socket listener!"),
-        true => {match join_multicast(listen_addr) {
-            Ok(s) => s,
-            Err(e) => panic!("failed to create multicast listener on address {}! are you sure this is a valid multicast channel?\n{:?}", listen_addr, e),
-        }
-        },
-    }
-}
-pub fn new_downstream_socket(downstream_addr: &String) -> (SocketAddr, UdpSocket) {
-    let addr = downstream_addr
-        .to_socket_addrs()
-        .unwrap()
-        .next()
-        .expect("parsing address");
-    (
-        addr,
-        match addr.is_ipv4() {
-            true => new_sender(&addr).expect("ipv4 output socket"),
-            false => client_check_ipv6_interfaces(&addr).expect("ipv6 output socket"),
-        },
-    )
-}
-
-pub fn proxy_thread(
-    listen_addr: &String,
-    downstream_addrs: &[String],
-    tee: bool,
-) -> JoinHandle<()> {
-    let listen_socket = new_listen_socket(listen_addr);
+pub fn proxy_thread(listen_addr: String, downstream_addrs: &[String], tee: bool) -> JoinHandle<()> {
+    //let listen_socket = new_listen_socket(listen_addr);
+    let (_addr, listen_socket) = upstream_socket_interface(listen_addr).unwrap();
     let mut output_buffer = BufWriter::new(stdout());
-    let targets: Vec<(SocketAddr, UdpSocket)> =
-        downstream_addrs.iter().map(new_downstream_socket).collect();
+    let targets: Vec<(SocketAddr, UdpSocket)> = downstream_addrs
+        .iter()
+        .map(|t| target_socket_interface(t).unwrap())
+        .collect();
     let mut buf = [0u8; BUFSIZE]; // receive buffer
     Builder::new()
         .name(format!("{:#?}", listen_socket))
@@ -61,7 +26,7 @@ pub fn proxy_thread(
                     Ok((c, _remote_addr)) => {
                         for (target_addr, target_socket) in &targets {
                             target_socket
-                                .send_to(&buf[0..c], &target_addr)
+                                .send_to(&buf[0..c], target_addr)
                                 .expect("sending to server socket");
                         }
                         if tee {
@@ -97,7 +62,31 @@ pub fn proxy_gateway(
             "proxy: forwarding {:?} -> {:?}",
             listen_addr, downstream_addrs
         );
-        threads.push(proxy_thread(listen_addr, downstream_addrs, tee));
+        threads.push(proxy_thread(listen_addr.to_string(), downstream_addrs, tee));
     }
     threads
+}
+
+pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle<()> {
+    let mut buf = [0u8; BUFSIZE];
+    let mut stream = TcpStream::connect(upstream_tcp).expect("connecting to TCP address");
+    let (target_addr, target_socket) =
+        target_socket_interface(&downstream_udp).expect("UDP downstream interface");
+
+    spawn(move || loop {
+        match stream.read(&mut buf[0..]) {
+            Ok(c) => {
+                if c == 0 {
+                    panic!("encountered EOF, disconnecting TCP proxy thread...");
+                }
+                //println!("{:?}", String::from_utf8_lossy(&buf[0..c]));
+                target_socket
+                    .send_to(&buf[0..c], target_addr)
+                    .expect("sending to UDP socket");
+            }
+            Err(e) => {
+                panic!("err: {}", e);
+            }
+        }
+    })
 }

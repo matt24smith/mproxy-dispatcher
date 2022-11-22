@@ -12,13 +12,14 @@ data over the network.
 - [X] Fast
   - 500+ Mbps read/transfer/write speed via UDP
 - [X] Minimal 
-  - Compiled sizes < 350Kb
+  - Compiled binaries ~350Kb each
   - Tiny memory footprint
   - Stateless: no shared resources between threads. Communication between threads are routed via UDP multicast
 
 ### Compatible with
 - [X] UDP
-- [ ] TCP (Partial support / planned feature)
+- [X] TCP (partial support via `proxy` or `reverse_proxy`)
+- [ ] SSL (planned feature)
 - [X] IPv4
 - [X] IPv6
 - [X] Unix/Linux/Mac
@@ -63,7 +64,7 @@ UDP packets will be routed via the multicast channel to listeners on each TCP
 client handler.
 
 ```
-reverse_proxy --udp_listen_addr '0.0.0.0:9921' --tcp_listen_addr '0.0.0.0:9921' --multicast_addr '224.0.0.1:9922'
+reverse_proxy --udp_listen_addr '0.0.0.0:9921' --tcp_output_addr '0.0.0.0:9921' --multicast_addr '224.0.0.1:9922'
 ```
 
 ### Server
