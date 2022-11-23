@@ -2,9 +2,8 @@
 Client/proxy/server network socket dispatcher. Streams files and raw socket 
 data over the network.
 
-### Features
 - [X] Stream arbitrary data over the network
-- [X] Complete UDP networking stack
+- [X] Complete networking stack
   - Send, proxy, reverse-proxy, and receive to/from multiple endpoints simultaneously
   - Stream multiplexing and aggregation
   - [Multicast](https://en.wikipedia.org/wiki/Multicast) reverse-proxy IP routing
@@ -18,8 +17,8 @@ data over the network.
 
 ### Compatible with
 - [X] UDP
-- [X] TCP (partial support via `proxy` or `reverse_proxy`)
-- [ ] SSL (planned feature)
+- [X] TCP (via `proxy` or `reverse_proxy`)
+- [X] TLS (partial support for client TLS via `proxy`. Requires feature `tls` enabled)
 - [X] IPv4
 - [X] IPv6
 - [X] Unix/Linux/Mac
