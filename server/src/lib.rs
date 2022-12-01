@@ -4,11 +4,11 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket}
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
-use socket_dispatch::{bind_socket, new_socket, BUFSIZE};
+use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 
-/// server: client socket handler
-/// binds a new socket connection on the network multicast channel
-pub fn join_multicast(addr: SocketAddr) -> ioResult<UdpSocket> {
+/// Client socket handler.
+/// Binds a new UDP socket to the network multicast channel
+fn join_multicast(addr: SocketAddr) -> ioResult<UdpSocket> {
     // https://bluejekyll.github.io/blog/posts/multicasting-in-rust/
     #[cfg(debug_assertions)]
     println!("server broadcasting to: {}", addr.ip());
@@ -48,6 +48,9 @@ pub fn join_multicast(addr: SocketAddr) -> ioResult<UdpSocket> {
             }
             //socket.join_multicast_v6(&Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), addr.port().into())?;
 
+            // enable broadcasting
+            //socket.set_broadcast(true)?;
+
             let listenaddr = SocketAddr::new(
                 IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
                 addr.port(),
@@ -62,13 +65,13 @@ pub fn join_multicast(addr: SocketAddr) -> ioResult<UdpSocket> {
     }
 }
 
-pub fn join_unicast(addr: SocketAddr) -> ioResult<UdpSocket> {
+fn join_unicast(addr: SocketAddr) -> ioResult<UdpSocket> {
     let socket = new_socket(&addr)?;
     bind_socket(&socket, &addr)?;
     Ok(socket.into())
 }
 
-/// to bind to an arbitrary outgoing port, see client::target_socket_interface
+/// Create a new UDP socket and bind to upstream socket address
 pub fn upstream_socket_interface(addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
     let addr = addr
         .to_socket_addrs()
@@ -76,7 +79,6 @@ pub fn upstream_socket_interface(addr: String) -> ioResult<(SocketAddr, UdpSocke
         .next()
         .expect("parsing socket address");
     let listen_socket = match addr.ip().is_multicast() {
-        //false => join_unicast(addr).expect(format!("failed to create unicast socket listener! {}", addr).as_str()),
         false => join_unicast(addr).unwrap_or_else(|_| panic!("failed to create unicast socket listener! {}", addr)),
         true => {match join_multicast(addr) {
             Ok(s) => s,
@@ -86,7 +88,10 @@ pub fn upstream_socket_interface(addr: String) -> ioResult<(SocketAddr, UdpSocke
     Ok((addr, listen_socket))
 }
 
-/// server socket listener
+/// Server UDP socket listener.
+/// Binds to UDP socket address `addr`, and logs input to `logfile`.
+/// Can optionally copy input to stdout if `tee` is true.
+/// `logfile` may be a filepath, file descriptor/handle, etc.
 pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
     let file = OpenOptions::new()
         .create(true)

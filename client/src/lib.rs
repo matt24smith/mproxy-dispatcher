@@ -4,11 +4,11 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use socket_dispatch::{bind_socket, new_socket, BUFSIZE};
+use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 
-/// new upstream socket on any available UDP port
-/// socket will allow any downstream IP i.e. 0.0.0.0
-pub fn new_sender(addr: &SocketAddr) -> ioResult<UdpSocket> {
+/// New upstream socket on any available UDP port.
+/// Will allow any downstream IP i.e. 0.0.0.0
+fn new_sender(addr: &SocketAddr) -> ioResult<UdpSocket> {
     let socket = new_socket(addr)?;
 
     if !addr.is_ipv4() {
@@ -52,7 +52,7 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket
     Ok(socket.into())
 }
 
-pub fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
+fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
     // workaround:
     // find the first suitable interface
     for i in 0..32 {
@@ -74,8 +74,8 @@ pub fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
     panic!("No suitable network interfaces were found!");
 }
 
-/// binds to a random port number for sending
-/// to bind to a specific port, see server::upstream_socket_interface
+/// Binds to a random UDP port for sending to downstream.
+/// To bind to a specific port, see mproxy_server::upstream_socket_interface
 pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
     let target_addr = server_addr
         .to_socket_addrs()
@@ -93,6 +93,8 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
     Ok((target_addr, target_socket))
 }
 
+/// Read bytes from `path` info a buffer, and forward to downstream UDP server addresses.
+/// Optionally copy output to stdout
 pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool) -> ioResult<()> {
     let mut targets = vec![];
 

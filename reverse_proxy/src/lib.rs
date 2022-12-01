@@ -1,24 +1,21 @@
 use std::io::{BufWriter, Read, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{TcpListener, TcpStream};
 use std::thread::{spawn, JoinHandle};
 
-use client::target_socket_interface;
-use server::{join_multicast, upstream_socket_interface};
-use socket_dispatch::BUFSIZE;
+use mproxy_client::target_socket_interface;
+use mproxy_server::upstream_socket_interface;
+use mproxy_socket_dispatch::BUFSIZE;
 
 fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
-    let multicast_addr = multicast_addr
-        .to_socket_addrs()
-        .unwrap()
-        .next()
-        .expect("parsing socket address");
-    if !multicast_addr.ip().is_multicast() {
-        panic!("not a multicast address {}", multicast_addr);
-    }
-    let multicast_socket = join_multicast(multicast_addr).unwrap_or_else(|e| {
-        panic!("joining multicast socket {}", e);
-    });
-    //multicast_socket.set_broadcast(true).unwrap();
+    let (_multicast_addr, multicast_socket) =
+        if let Ok((addr, socket)) = upstream_socket_interface(multicast_addr) {
+            if !addr.ip().is_multicast() {
+                panic!("not a multicast address {}", addr);
+            }
+            (addr, socket)
+        } else {
+            panic!()
+        };
 
     let mut buf = [0u8; BUFSIZE];
     let mut tcp_writer = BufWriter::new(downstream);
@@ -41,17 +38,9 @@ fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
     }
 }
 
-/// Forward UDP socket stream to downstream TCP clients
-///
-/// Spawns a new thread for each client.
-/// An additional thread will be spawned to listen for upstream_addr, which
-/// is rebroadcasted over the multicast channel. Client handler threads
-/// subscribing to this channel will then forward UDP packet information
-/// downstream to any clients connected via TCP
+/// Forward a UDP socket stream (e.g. from a multicast channel) to connected TCP clients.
+/// Spawns a listener thread, plus one thread for each incoming TCP connection.
 pub fn reverse_proxy_udp_tcp(multicast_addr: String, tcp_listen_addr: String) -> JoinHandle<()> {
-    // UDP multicast listener -> TCP sender
-    // accept new client connections on TCP listening address,
-    // and forward messages received over the UDP multicast channel
     spawn(move || {
         let listener = TcpListener::bind(tcp_listen_addr).unwrap();
         for stream in listener.incoming() {
@@ -65,12 +54,11 @@ pub fn reverse_proxy_udp_tcp(multicast_addr: String, tcp_listen_addr: String) ->
     })
 }
 
+/// Forward bytes from UDP upstream socket address to UDP downstream socket address
 pub fn reverse_proxy_udp(udp_input_addr: String, udp_output_addr: String) -> JoinHandle<()> {
     spawn(move || {
         let (addr, listen_socket) = upstream_socket_interface(udp_input_addr).unwrap();
         let (outaddr, output_socket) = target_socket_interface(&udp_output_addr).unwrap();
-        //let (outaddr, output_socket) = upstream_socket_interface(udp_input_addr).unwrap();
-        //let (addr, listen_socket) = target_socket_interface(&udp_output_addr).unwrap();
 
         let mut buf = [0u8; BUFSIZE];
         loop {
@@ -93,10 +81,12 @@ pub fn reverse_proxy_udp(udp_input_addr: String, udp_output_addr: String) -> Joi
     })
 }
 
+/// Listen for incoming TCP connections and forward received bytes to a UDP socket address
 pub fn reverse_proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle<()> {
     //pub fn reverse_proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) {
     spawn(move || {
         let listener = TcpListener::bind(upstream_tcp).expect("binding TCP socket");
+
         for upstream in listener.incoming() {
             let (target_addr, target_socket) = target_socket_interface(&downstream_udp).unwrap();
             let mut buf = [0u8; BUFSIZE];

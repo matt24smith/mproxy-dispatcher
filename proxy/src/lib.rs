@@ -3,12 +3,13 @@ use std::net::{SocketAddr, TcpStream, UdpSocket};
 use std::thread::spawn;
 use std::thread::{Builder, JoinHandle};
 
-use client::target_socket_interface;
-use server::upstream_socket_interface;
-use socket_dispatch::BUFSIZE;
+use mproxy_client::target_socket_interface;
+use mproxy_server::upstream_socket_interface;
+use mproxy_socket_dispatch::BUFSIZE;
 
+/// Forward UDP upstream `listen_addr` to downstream UDP socket addresses.
+/// `listen_addr` may be a multicast address.
 pub fn proxy_thread(listen_addr: String, downstream_addrs: &[String], tee: bool) -> JoinHandle<()> {
-    //let listen_socket = new_listen_socket(listen_addr);
     let (_addr, listen_socket) = upstream_socket_interface(listen_addr).unwrap();
     let mut output_buffer = BufWriter::new(stdout());
     let targets: Vec<(SocketAddr, UdpSocket)> = downstream_addrs
@@ -50,6 +51,7 @@ pub fn proxy_thread(listen_addr: String, downstream_addrs: &[String], tee: bool)
         .unwrap()
 }
 
+/// Wrapper for proxy_thread listening on multiple upstream addresses
 pub fn proxy_gateway(
     downstream_addrs: &[String],
     listen_addrs: &[String],
@@ -67,22 +69,14 @@ pub fn proxy_gateway(
     threads
 }
 
+/// Connect to TCP upstream server, and forward received bytes to a
+/// downstream UDP socket socket address.
+/// TLS can be enabled with feature `tls` (provided by crate `rustls`).
 pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle<()> {
     let mut buf = [0u8; BUFSIZE];
 
     let (target_addr, target_socket) =
         target_socket_interface(&downstream_udp).expect("UDP downstream interface");
-
-    /*
-    #[allow(unused_mut)]
-    let mut stream = TcpStream::connect(upstream_tcp.clone()).expect("connecting to TCP address");
-    #[cfg(feature = "tls")]
-    let connector = SslConnector::builder(SslMethod::tls()).unwrap().build();
-    #[cfg(feature = "tls")]
-    let hostname: String = upstream_tcp.split(':').next().unwrap().to_string();
-    #[cfg(feature = "tls")]
-    let mut stream = connector.connect(&hostname, stream).unwrap();
-    */
 
     #[cfg(debug_assertions)]
     println!(

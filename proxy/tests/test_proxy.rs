@@ -2,16 +2,11 @@ use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 
-extern crate client;
-use client::client_socket_stream;
+use mproxy_client::client_socket_stream;
+use mproxy_proxy::proxy_thread;
+use mproxy_server::listener;
 
-extern crate server;
-use server::listener;
-
-extern crate testconfig;
 use testconfig::{truncate, TESTDATA, TESTINGDIR};
-
-use proxy::proxy_thread;
 
 #[test]
 fn test_proxy_thread_ipv4() {

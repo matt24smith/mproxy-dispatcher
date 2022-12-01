@@ -1,7 +1,12 @@
 [package]
-name = "socket_dispatch"
+name = "mproxy-socket_dispatch"
 version = "0.1.0"
 edition = "2021"
+
+license = "MIT"
+readme = "../readme.md"
+repository = "https://github.com/matt24smith/mproxy-dispatcher"
+description = "MPROXY: Socket Dispatcher. Platform-agnostic API to bind unicast and multicast UDP socket addresses."
 
 [dependencies]
 socket2 = { version = "0.4.7", features = ["all"] }

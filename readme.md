@@ -1,19 +1,21 @@
-# Network Dispatcher
-Client/proxy/server network socket dispatcher. Streams files and raw socket 
-data over the network.
+# MPROXY: Multicast Network Dispatcher and Proxy
+Streams files and raw socket data over the network. Includes client, proxy, 
+reverse-proxy, and server applications, as well as a library API. Provides a 
+complete network stack using [UDP Multicast](https://en.wikipedia.org/wiki/Multicast) as 
+an intermediate route, enabling scalable stream multiplexing and aggregate feeds.
 
 - [X] Stream arbitrary data over the network
 - [X] Complete networking stack
   - Send, proxy, reverse-proxy, and receive to/from multiple endpoints simultaneously
-  - Stream multiplexing and aggregation
-  - [Multicast](https://en.wikipedia.org/wiki/Multicast) reverse-proxy IP routing
+  - Stream multiplexing and aggregation via multicast IP routing
   - Hostname resolution
 - [X] Fast
-  - 500+ Mbps read/transfer/write speed via UDP
+  - 500+ Mbps read/transfer/write speed (UDP)
 - [X] Minimal 
-  - Compiled binaries ~350Kb each
+  - Compiled binaries ~350KB
   - Tiny memory footprint
   - Stateless: no shared resources between threads. Communication between threads are routed via UDP multicast
+
 
 ### Compatible with
 - [X] UDP
@@ -25,54 +27,121 @@ data over the network.
 - [X] Windows
 
 
-## Install
-Install utils from source using cargo, e.g.
+## Install Binary
 ```
-git clone https://github.com/matt24smith/dispatcher.git
-cargo install dispatcher/reverse_proxy
+cargo install mproxy-client
+cargo install mproxy-proxy
+cargo install mproxy-reverseproxy
+cargo install mproxy-server
 ```
 
 
-## Operation
-Use `--help`/`-h` to view help messages.
-The `--tee`/`-t` flag may be used to copy input to stdout.
+## Using MPROXY as a library 
+Include in Cargo.toml:
+```
+[dependencies]
+mproxy-client = "0.1.0"
+mproxy-proxy = "0.1.0"
+mproxy-reverseproxy = "0.1.0"
+mproxy-server = "0.1.0"
+```
+
+
+## Command Line Interface
 
 ### Client
-
-Stream data from the client to logging servers. The `--server_addr` option may 
-be repeated for multiple server hosts. To accept input from stdin, use `--path "-"`
-
 ```
-client --path '/dev/random' --server_addr 'localhost:9921'
+MPROXY: UDP Client
+
+Stream local data to logging servers via UDP
+
+USAGE:
+  mproxy-client [FLAGS] [OPTIONS] ...
+
+OPTIONS:
+  --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle. Use "-" for stdin
+  --server-addr [HOSTNAME:PORT]     Downstream UDP server address. May be repeated 
+
+FLAGS:
+  -h, --help    Prints help information
+  -t, --tee     Copy input to stdout
+
+EXAMPLE:
+  mproxy-client --path /dev/random --server-addr '127.0.0.1:9920' --server-addr '[::1]:9921'
+  mproxy-client --path - --server-addr '224.0.0.1:9922' --server-addr '[ff02::1]:9923' --tee >> logfile.log
 ```
 
 ### Proxy
-
-Forward UDP packets from listening port to downstream hosts. 
-Options `--listen_addr` and `--downstream_addr` may be repeated for multiple 
-endpoints.
-
 ```
-proxy --listen_addr '0.0.0.0:9921' --downstream_addr 'localhost:9922'
+MPROXY: Proxy
+
+Forward TCP, UDP, or Multicast endpoints to a downstream UDP socket address. 
+
+USAGE:
+  mproxy-proxy  [FLAGS] [OPTIONS]
+
+OPTIONS:
+  --udp-listen-addr     [HOSTNAME:PORT]     UDP listening socket address. May be repeated
+  --udp-downstream-addr [HOSTNAME:PORT]     UDP downstream socket address. May be repeated
+  --tcp-connect-addr    [HOSTNAME:PORT]     Connect to TCP host, forwarding stream. May be repeated 
+
+FLAGS:
+  -h, --help    Prints help information
+  -t, --tee     Copy input to stdout
+
+EXAMPLE:
+  mproxy-proxy --udp-listen-addr '0.0.0.0:9920' \
+    --udp-downstream-addr '[::1]:9921' \
+    --udp-downstream-addr 'localhost:9922' \
+    --tcp-connect-addr 'localhost:9925' \
+    --tee
 ```
 
 ### Reverse-Proxy
-
-Forward UDP packets from upstream to new incoming TCP client connections.
-UDP packets will be routed via the multicast channel to listeners on each TCP 
-client handler.
-
 ```
-reverse_proxy --udp_listen_addr '0.0.0.0:9921' --tcp_output_addr '0.0.0.0:9921' --multicast_addr '224.0.0.1:9922'
+MPROXY: Reverse-proxy
+
+Forward upstream TCP and/or UDP endpoints to downstream listeners.
+Messages are routed via UDP multicast to downstream sender threads. 
+Spawns one thread per listener.
+
+USAGE:
+  mproxy-reverseproxy  [FLAGS] [OPTIONS]
+
+OPTIONS:
+  --udp-listen-addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and forward to --multicast-addr
+  --tcp_listen_addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast-addr
+  --multicast-addr  [MULTICAST_IP:PORT] Defaults to '[ff02::1]:9918'
+  --tcp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to TCP downstream
+  --udp_output_addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to UDP downstream
+
+FLAGS:
+  -h, --help    Prints help information
+  -t, --tee     Print UDP input to stdout
+
+EXAMPLE:
+  reverse_proxy --udp-listen-addr '0.0.0.0:9920' --tcp-output-addr '[::1]:9921' --multicast-addr '224.0.0.1:9922'
 ```
 
 ### Server
-
-Start the logging server. The `--listen_addr` option may be repeated to listen 
-for incoming messages from multiple sockets.
-
 ```
-server --path logfile.log --listen_addr '0.0.0.0:9920' --listen_addr '[::]:9921'
+MPROXY: UDP Server
+
+Listen for incoming UDP messages and log to file.
+
+USAGE:
+  mproxy-server [FLAGS] [OPTIONS] ...
+
+OPTIONS: 
+  --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle.
+  --listen-addr [SOCKET_ADDR]       Upstream UDP listening address. May be repeated 
+
+FLAGS:
+  -h, --help    Prints help information
+  -t, --tee     Copy input to stdout
+
+EXAMPLE:
+  mproxy-server --path logfile.log --listen-addr '127.0.0.1:9920' --listen-addr '[::1]:9921'
 ```
 
 
