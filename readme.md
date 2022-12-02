@@ -1,47 +1,58 @@
 # MPROXY: Multicast Network Dispatcher and Proxy
-Streams files and raw socket data over the network. MPROXY includes client, forward proxy, 
-reverse proxy, and server packages, each with binary and library targets. Provides a complete network stack 
-using [UDP Multicast](https://en.wikipedia.org/wiki/Multicast) as an intermediate 
-route, enabling simple deployment of scalable stream multiplexing and aggregate 
-stream processing.
 
-- [X] Stream arbitrary data over the network
-- [X] Complete networking stack
+Streams data over the network. 
+
+
+## About 
+This repo includes four packages: Forward-proxy, reverse-proxy, UDP client, and UDP server. Proxies allow conversion between TCP and UDP, so these blocks can be combined together for complete interoperability with existing networks.  
+A primary feature is compatability with [UDP Multicast](https://en.wikipedia.org/wiki/Multicast) for intermediate routing and reverse-proxy, enabling dead simple group communication across complex one-to-many or many-to-many data streams, and resulting in scalable reverse-proxy.
+Packages can be run either from the command line or included as a library.
+
+- [X] Simple to use full networking stack
   - Send, proxy, reverse-proxy, and receive to/from multiple endpoints simultaneously
-  - Stream multiplexing and aggregation via multicast IP routing
-  - Hostname resolution
 - [X] Fast
+  - Can be deployed in less than 5 minutes
   - 500+ Mbps read/transfer/write speed (UDP)
 - [X] Minimal 
-  - Compiled binaries ~350KB
-  - Tiny memory footprint
-  - Stateless: no shared resources between threads. Communications between threads are routed via UDP multicast
+  - Zero configuration, logging, or caching
+  - Tiny memory footprint, compiled binary sizes ~350KB
+  - No shared resources between threads
+- [X] Leverage benefits of UDP
+  - Simple stream aggregation
+  - Performant proxy and reverse proxy
+  - UDP multicasting enables stateless, scalable reverse-proxy
 
 
-### Compatability
+## Quick Start
+Get started with a simple client/server network. Install the command line tools with cargo, and start a UDP listen server on port 9920.
+```bash
+cargo install mproxy-client mproxy-server
+mproxy-server --listen-addr "localhost:9920" --path streamoutput.log --tee
+```
+Then send some data from the client to the server. The path option "-" tells the client to read data from stdin. A filepath, descriptor, or handle may also be used.
+```bash
+mproxy-client --path "-" --server-addr localhost:9920
+> Hello world!
+```
+You should now see your message appear in `streamoutput.log` (and also on screen if `--tee` is used)
+
+
+### Flexibility and Compatability
+
+- [X] Windows/Linux/Mac
+- [X] IPv4/IPv6
 - [X] UDP
-- [X] TCP (via `proxy` or `reverse_proxy`)
-- [X] TLS (partial support for client TLS via `mproxy-forward`. Requires feature `tls` enabled)
-- [X] IPv4
-- [X] IPv6
-- [X] Unix/Linux/Mac
-- [X] Windows
+- [X] TCP/TLS 
+  - via forward and reverse proxy 
+  - Partial client-side TLS support provided by `rustls` (requires feature `tls` enabled in `mproxy-forward`)
+- [X] Fully transparent routing
+
 
 
 ## Docs
+See the documentation for installing and operation instructions
  - [mproxy-client](https://docs.rs/mproxy-client/)
  - [mproxy-server](https://docs.rs/mproxy-server/)
  - [mproxy-forward](https://docs.rs/mproxy-forward/)
  - [mproxy-reverse](https://docs.rs/mproxy-reverse/)
-
-
-## Motivation
-
-- Minimal set of networking tools needed for complete encapsulation of distributed systems
-- Zero-configuration, simple operation and deployment
-- Leverage benefits of UDP protocol:
-  - Dead simple stream aggregation
-  - Performant stream multiplexing and redistribution
-  - UDP multicasting enables stateless, scalable reverse-proxy
-- Prioritizing cross-compatability, simplicity, security, and performance
 
