@@ -3,7 +3,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 use mproxy_client::client_socket_stream;
-use mproxy_reverseproxy::reverse_proxy_udp_tcp;
+use mproxy_reverse::reverse_proxy_udp_tcp;
 
 use testconfig::TESTDATA;
 

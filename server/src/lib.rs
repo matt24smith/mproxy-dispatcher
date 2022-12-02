@@ -1,3 +1,71 @@
+//! Multicast Network Dispatcher and Proxy
+//!
+//! # MPROXY: Server
+//! Listen for incoming UDP messages and log to file.
+//!
+//! ## Quick Start
+//! In `Cargo.toml`
+//! ```toml
+//! [dependencies]
+//! mproxy-server = "0.1"
+//! ```
+//!
+//! Example `src/main.rs`
+//! ```rust,no_run
+//! use std::path::PathBuf;
+//! use std::thread::JoinHandle;
+//!
+//! use mproxy_server::listener;
+//!
+//! pub fn main() {
+//!     // bind to IPv6 multicast channel on port 9920
+//!     let listen_addr: String = "[ff01::1]:9920".into();
+//!     
+//!     // output filepath
+//!     let logpath = PathBuf::from("server_demo.log");
+//!
+//!     // copy input to stdout
+//!     let tee = true;
+//!
+//!     // bind socket listener thread
+//!     let server_thread: JoinHandle<_> = listener(listen_addr, logpath, tee);
+//!     server_thread.join().unwrap();
+//! }
+//! ```
+//!
+//! ## Command Line Interface
+//! Install with cargo
+//! ```bash
+//! cargo install mproxy-server
+//! ```
+//!
+//! ```text
+//! MPROXY: UDP Server
+//!
+//! Listen for incoming UDP messages and log to file or socket.
+//!
+//! USAGE:
+//!   mproxy-server [FLAGS] [OPTIONS] ...
+//!
+//! OPTIONS:
+//!   --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle.
+//!   --listen-addr [SOCKET_ADDR]       Upstream UDP listening address. May be repeated
+//!
+//! FLAGS:
+//!   -h, --help    Prints help information
+//!   -t, --tee     Copy input to stdout
+//!
+//! EXAMPLE:
+//!   mproxy-server --path logfile.log --listen-addr '127.0.0.1:9920' --listen-addr '[::1]:9921'
+//! ```
+//!
+//! ### See Also
+//! - [mproxy-client](https://docs.rs/mproxy-client/)
+//! - [mproxy-server](https://docs.rs/mproxy-server/)
+//! - [mproxy-forward](https://docs.rs/mproxy-forward/)
+//! - [mproxy-reverse](https://docs.rs/mproxy-reverse/)
+//!
+
 use std::fs::OpenOptions;
 use std::io::{stdout, BufWriter, Result as ioResult, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};

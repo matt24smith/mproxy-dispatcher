@@ -1,16 +1,16 @@
 use std::process::exit;
 
-use mproxy_proxy::{proxy_gateway, proxy_tcp_udp};
+use mproxy_forward::{proxy_gateway, proxy_tcp_udp};
 
 use pico_args::Arguments;
 
 const HELP: &str = r#"
-MPROXY: Proxy
+MPROXY: Forwarding Proxy
 
-Forward TCP, UDP, or Multicast endpoints to a downstream UDP socket address. 
+Forward TLS/TCP, UDP, or Multicast endpoints to a downstream UDP socket address. 
 
 USAGE:
-  mproxy-proxy  [FLAGS] [OPTIONS]
+  mproxy-forward  [FLAGS] [OPTIONS]
 
 OPTIONS:
   --udp-listen-addr     [HOSTNAME:PORT]     UDP listening socket address. May be repeated
@@ -22,7 +22,7 @@ FLAGS:
   -t, --tee     Copy input to stdout
 
 EXAMPLE:
-  mproxy-proxy --udp-listen-addr '0.0.0.0:9920' \
+  mproxy-forward --udp-listen-addr '0.0.0.0:9920' \
     --udp-downstream-addr '[::1]:9921' \
     --udp-downstream-addr 'localhost:9922' \
     --tcp-connect-addr 'localhost:9925' \

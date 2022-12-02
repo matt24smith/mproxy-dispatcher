@@ -1,12 +1,13 @@
 [package]
 name = "mproxy-server"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 license = "MIT"
 readme = "../readme.md"
 repository = "https://github.com/matt24smith/mproxy-dispatcher"
 description = "MPROXY: Server. Listen for incoming UDP messages and log to file."
+documentation = "https://docs.rs/mproxy-server/"
 
 [lib]
 
@@ -14,7 +15,7 @@ description = "MPROXY: Server. Listen for incoming UDP messages and log to file.
 name = "mproxy-server"
 
 [dependencies]
-mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.0"}
+mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.1"}
 
 [dependencies.pico-args]
 version = "0.5.0"

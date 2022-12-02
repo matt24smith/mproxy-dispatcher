@@ -6,17 +6,17 @@ use mproxy_client::client_socket_stream;
 
 use pico_args::Arguments;
 
-const HELP: &str = r#"
+pub const HELP: &str = r#"
 MPROXY: UDP Client
 
-Stream local data to logging servers via UDP
+Stream file or socket data via UDP. Supports multicast routing
 
 USAGE:
   mproxy-client [FLAGS] [OPTIONS] ...
 
 OPTIONS:
   --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle. Use "-" for stdin
-  --server-addr [HOSTNAME:PORT]     Downstream UDP server address. May be repeated 
+  --server-addr [HOSTNAME:PORT]     Downstream UDP server address. May be repeated
 
 FLAGS:
   -h, --help    Prints help information
@@ -29,7 +29,7 @@ EXAMPLE:
 "#;
 
 /// command line arguments
-struct ClientArgs {
+pub struct ClientArgs {
     path: PathBuf,
     server_addrs: Vec<String>,
     tee: bool,

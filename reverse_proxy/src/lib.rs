@@ -1,3 +1,93 @@
+//! Multicast Network Dispatcher and Proxy
+//!
+//! # MPROXY: Reverse Proxy
+//! Forward upstream TCP and UDP upstream to downstream listeners.
+//! Messages are routed via UDP multicast to downstream sender threads.
+//! Spawns one thread per listener.
+//!
+//!
+//! ## Quick Start
+//! In `Cargo.toml`
+//! ```toml
+//! [dependencies]
+//! mproxy-reverse = "0.1"
+//! ```
+//!
+//! Example `src/main.rs`
+//! ```rust,no_run
+//! use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
+//!
+//! pub fn main() {
+//!     let udp_listen_addr: Option<String> = Some("0.0.0.0:9920".into());
+//!     let tcp_listen_addr: Option<String> = None;
+//!     let multicast_addr: String = "[ff02::1]:9918".into();
+//!     let tcp_output_addr: Option<String> = Some("[::1]:9921".into());
+//!     let udp_output_addr: Option<String> = None;
+//!
+//!     let mut threads = vec![];
+//!
+//!     // TCP connection listener -> UDP multicast channel
+//!     if let Some(tcpin) = tcp_listen_addr {
+//!         let tcp_rproxy = reverse_proxy_tcp_udp(tcpin, multicast_addr.clone());
+//!         threads.push(tcp_rproxy);
+//!     }
+//!
+//!     // UDP multicast listener -> TCP sender
+//!     if let Some(tcpout) = &tcp_output_addr {
+//!         let tcp_proxy = reverse_proxy_udp_tcp(multicast_addr.clone(), tcpout.to_string());
+//!         threads.push(tcp_proxy);
+//!     }
+//!
+//!     // UDP multicast listener -> UDP sender
+//!     if let Some(udpout) = udp_output_addr {
+//!         let udp_proxy = reverse_proxy_udp(multicast_addr, udpout);
+//!         threads.push(udp_proxy);
+//!     }
+//!
+//!     for thread in threads {
+//!         thread.join().unwrap();
+//!     }
+//! }
+//! ```
+//!
+//! ## Command Line Interface
+//! Install with Cargo
+//! ```bash
+//! cargo install mproxy-reverse
+//! ```
+//!
+//! ```text
+//! MPROXY: Reverse Proxy
+//!
+//! Forward upstream TCP and UDP upstream to downstream listeners.
+//! Messages are routed via UDP multicast to downstream sender threads.
+//! Spawns one thread per listener.
+//!
+//! USAGE:
+//!   mproxy-reverse  [FLAGS] [OPTIONS]
+//!
+//! OPTIONS:
+//!   --udp-listen-addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and forward to --multicast-addr
+//!   --tcp_listen_addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast-addr
+//!   --multicast-addr  [MULTICAST_IP:PORT] Defaults to '[ff02::1]:9918'
+//!   --tcp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to TCP downstream
+//!   --udp_output_addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to UDP downstream
+//!
+//! FLAGS:
+//!   -h, --help    Prints help information
+//!   -t, --tee     Print UDP input to stdout
+//!
+//! EXAMPLE:
+//!   mproxy-reverse --udp-listen-addr '0.0.0.0:9920' --tcp-output-addr '[::1]:9921' --multicast-addr '224.0.0.1:9922'
+//! ```
+//!
+//! ### See Also
+//! - [mproxy-client](https://docs.rs/mproxy-client/)
+//! - [mproxy-server](https://docs.rs/mproxy-server/)
+//! - [mproxy-forward](https://docs.rs/mproxy-forward/)
+//! - [mproxy-reverse](https://docs.rs/mproxy-reverse/)
+//!
+
 use std::io::{BufWriter, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread::{spawn, JoinHandle};

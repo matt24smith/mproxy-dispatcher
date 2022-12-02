@@ -1,3 +1,76 @@
+//! Multicast Network Dispatcher and Proxy
+//!
+//! # MPROXY: Client
+//! Stream file or socket data via UDP. Supports multicast routing
+//!
+//!
+//! ## Quick Start
+//! In `Cargo.toml`
+//! ```toml
+//! [dependencies]
+//! mproxy-client = "0.1"
+//! ```
+//!
+//! Example `src/main.rs`
+//! ```rust,no_run
+//! use std::path::PathBuf;
+//! use std::thread::spawn;
+//!
+//! use mproxy_client::client_socket_stream;
+//!
+//! pub fn main() {
+//!     // read input from stdin
+//!     let path = PathBuf::from("-");
+//!
+//!     // downstream UDP socket addresses
+//!     let server_addrs =  vec!["127.0.0.1:9919".into(), "localhost:9921".into(), "[ff02::1]:9920".into()];
+//!     
+//!     // copy input to stdout
+//!     let tee = true;
+//!
+//!     let client_thread = spawn(move || {
+//!         client_socket_stream(&path, server_addrs, tee).unwrap();
+//!     });
+//!
+//!     // run client until EOF
+//!     client_thread.join().unwrap();
+//! }
+//! ```
+//!
+//! ## Command Line Interface
+//! Install with cargo
+//! ```bash
+//! cargo install mproxy-client
+//! ```
+//!
+//! ```text
+//! MPROXY: UDP Client
+//!
+//! Stream local data to logging servers via UDP
+//!
+//! USAGE:
+//!   mproxy-client [FLAGS] [OPTIONS] ...
+//!
+//! OPTIONS:
+//!   --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle. Use "-" for stdin
+//!   --server-addr [HOSTNAME:PORT]     Downstream UDP server address. May be repeated
+//!
+//! FLAGS:
+//!   -h, --help    Prints help information
+//!   -t, --tee     Copy input to stdout
+//!
+//! EXAMPLE:
+//!   mproxy-client --path /dev/random --server-addr '127.0.0.1:9920' --server-addr '[::1]:9921'
+//!   mproxy-client --path - --server-addr '224.0.0.1:9922' --server-addr '[ff02::1]:9923' --tee >> logfile.log
+//! ```
+//!
+//! ### See Also
+//! - [mproxy-client](https://docs.rs/mproxy-client/)
+//! - [mproxy-server](https://docs.rs/mproxy-server/)
+//! - [mproxy-forward](https://docs.rs/mproxy-forward/)
+//! - [mproxy-reverse](https://docs.rs/mproxy-reverse/)
+//!
+
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Result as ioResult, Write};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};

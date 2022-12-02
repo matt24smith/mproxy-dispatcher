@@ -1,19 +1,19 @@
 use std::process::exit;
 
-use mproxy_proxy::proxy_thread;
-use mproxy_reverseproxy::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
+use mproxy_forward::forward_udp;
+use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
 
 use pico_args::Arguments;
 
 const HELP: &str = r#"
-MPROXY: Reverse-proxy
+MPROXY: Reverse Proxy
 
-Forward upstream TCP and/or UDP endpoints to downstream listeners.
+Forward upstream TCP and UDP upstream to downstream listeners.
 Messages are routed via UDP multicast to downstream sender threads. 
 Spawns one thread per listener.
 
 USAGE:
-  mproxy-reverseproxy  [FLAGS] [OPTIONS]
+  mproxy-reverse  [FLAGS] [OPTIONS]
 
 OPTIONS:
   --udp-listen-addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and forward to --multicast-addr
@@ -27,7 +27,7 @@ FLAGS:
   -t, --tee     Print UDP input to stdout
 
 EXAMPLE:
-  reverse_proxy --udp-listen-addr '0.0.0.0:9920' --tcp-output-addr '[::1]:9921' --multicast-addr '224.0.0.1:9922'
+  mproxy-reverse --udp-listen-addr '0.0.0.0:9920' --tcp-output-addr '[::1]:9921' --multicast-addr '224.0.0.1:9922'
 
 "#;
 
@@ -82,7 +82,7 @@ pub fn main() {
     // UDP listener thread -> UPD multicast sender
     // rebroadcast upstream UDP via multicast to client threads
     if let Some(udp_listen) = args.udp_listen_addr {
-        let multicast = proxy_thread(udp_listen, &[multicast.to_string()], args.tee);
+        let multicast = forward_udp(udp_listen, &[multicast.to_string()], args.tee);
         threads.push(multicast);
     }
 

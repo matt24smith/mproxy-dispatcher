@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "mproxy-server",
  "mproxy-socket_dispatch",
@@ -55,8 +55,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "mproxy-proxy"
-version = "0.1.0"
+name = "mproxy-forward"
+version = "0.1.1"
 dependencies = [
  "mproxy-client",
  "mproxy-server",
@@ -68,11 +68,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "mproxy-reverseproxy"
-version = "0.1.0"
+name = "mproxy-reverse"
+version = "0.1.1"
 dependencies = [
  "mproxy-client",
- "mproxy-proxy",
+ "mproxy-forward",
  "mproxy-server",
  "mproxy-socket_dispatch",
  "pico-args",
@@ -81,7 +81,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "mproxy-client",
  "mproxy-socket_dispatch",
@@ -91,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-socket_dispatch"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "socket2",
 ]

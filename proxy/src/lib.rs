@@ -1,7 +1,84 @@
+//! Multicast Network Dispatcher and Proxy
+//!
+//! # MPROXY: Forwarding Proxy
+//! Forward TLS/TCP, UDP, or Multicast endpoints to a downstream UDP socket address.
+//! Use feature `tls` to enable TLS provided by crate `rustls`.
+//!
+//!
+//! ## Quick Start
+//! In `Cargo.toml`
+//! ```toml
+//! [dependencies]
+//! mproxy-forward = { version = "0.1", features = ["tls"] }
+//! ```
+//!
+//! Example `src/main.rs`
+//! ```rust,no_run
+//! use std::thread::JoinHandle;
+//!
+//! use mproxy_forward::{forward_udp, proxy_tcp_udp};
+//!
+//! pub fn main() {
+//!     let udp_listen_addr: String ="[ff02::1]:9920".into();
+//!     let udp_downstream_addrs = vec!["[::1]:9921".into(), "localhost:9922".into()];
+//!     let tcp_connect_addr: String = "localhost:9925".into();
+//!     let tee = true;  // copy input to stdout
+//!     
+//!     let mut threads: Vec<JoinHandle<()>> = vec![];
+//!     
+//!     // spawn UDP socket listener and forward to downstream addresses
+//!     threads.push(forward_udp(udp_listen_addr.clone(), &udp_downstream_addrs, tee));
+//!     
+//!     // connect to TCP upstream, and forward to UDP socket listener
+//!     threads.push(proxy_tcp_udp(tcp_connect_addr, udp_listen_addr));
+//!
+//!     for thread in threads {
+//!         thread.join().unwrap();
+//!     }
+//! }
+//! ```
+//!
+//! ## Command Line Interface
+//! Install with cargo
+//! ```bash
+//! cargo install mproxy-forward
+//! ```
+//!
+//! ```text
+//! MPROXY: Forwarding Proxy
+//!
+//! Forward TLS/TCP, UDP, or Multicast endpoints to a downstream UDP socket address.
+//!
+//! USAGE:
+//!   mproxy-forward  [FLAGS] [OPTIONS]
+//!
+//! OPTIONS:
+//!   --udp-listen-addr     [HOSTNAME:PORT]     UDP listening socket address. May be repeated
+//!   --udp-downstream-addr [HOSTNAME:PORT]     UDP downstream socket address. May be repeated
+//!   --tcp-connect-addr    [HOSTNAME:PORT]     Connect to TCP host, forwarding stream. May be repeated
+//!
+//! FLAGS:
+//!   -h, --help    Prints help information
+//!   -t, --tee     Copy input to stdout
+//!
+//! EXAMPLE:
+//!   mproxy-forward --udp-listen-addr '0.0.0.0:9920' \
+//!     --udp-downstream-addr '[::1]:9921' \
+//!     --udp-downstream-addr 'localhost:9922' \
+//!     --tcp-connect-addr 'localhost:9925' \
+//!     --tee
+//! ```
+//!
+//! ### See Also
+//! - [mproxy-client](https://docs.rs/mproxy-client/)
+//! - [mproxy-server](https://docs.rs/mproxy-server/)
+//! - [mproxy-forward](https://docs.rs/mproxy-forward/)
+//! - [mproxy-reverse](https://docs.rs/mproxy-reverse/)
+//!
+
 use std::io::{stdout, BufWriter, Read, Write};
 use std::net::{SocketAddr, TcpStream, UdpSocket};
-use std::thread::spawn;
-use std::thread::{Builder, JoinHandle};
+use std::thread::{spawn, Builder, JoinHandle};
 
 use mproxy_client::target_socket_interface;
 use mproxy_server::upstream_socket_interface;
@@ -9,7 +86,7 @@ use mproxy_socket_dispatch::BUFSIZE;
 
 /// Forward UDP upstream `listen_addr` to downstream UDP socket addresses.
 /// `listen_addr` may be a multicast address.
-pub fn proxy_thread(listen_addr: String, downstream_addrs: &[String], tee: bool) -> JoinHandle<()> {
+pub fn forward_udp(listen_addr: String, downstream_addrs: &[String], tee: bool) -> JoinHandle<()> {
     let (_addr, listen_socket) = upstream_socket_interface(listen_addr).unwrap();
     let mut output_buffer = BufWriter::new(stdout());
     let targets: Vec<(SocketAddr, UdpSocket)> = downstream_addrs
@@ -40,9 +117,9 @@ pub fn proxy_thread(listen_addr: String, downstream_addrs: &[String], tee: bool)
                     }
                     Err(err) => {
                         //output_buffer.flush().unwrap();
-                        eprintln!("proxy_thread: got an error: {}", err);
+                        eprintln!("forward_udp: got an error: {}", err);
                         #[cfg(debug_assertions)]
-                        panic!("proxy_thread: got an error: {}", err);
+                        panic!("forward_udp: got an error: {}", err);
                     }
                 }
                 output_buffer.flush().unwrap();
@@ -51,7 +128,7 @@ pub fn proxy_thread(listen_addr: String, downstream_addrs: &[String], tee: bool)
         .unwrap()
 }
 
-/// Wrapper for proxy_thread listening on multiple upstream addresses
+/// Wrapper for forward_udp listening on multiple upstream addresses
 pub fn proxy_gateway(
     downstream_addrs: &[String],
     listen_addrs: &[String],
@@ -64,7 +141,7 @@ pub fn proxy_gateway(
             "proxy: forwarding {:?} -> {:?}",
             listen_addr, downstream_addrs
         );
-        threads.push(proxy_thread(listen_addr.to_string(), downstream_addrs, tee));
+        threads.push(forward_udp(listen_addr.to_string(), downstream_addrs, tee));
     }
     threads
 }

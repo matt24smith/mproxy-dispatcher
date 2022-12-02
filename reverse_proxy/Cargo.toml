@@ -1,18 +1,19 @@
 [package]
-name = "mproxy-reverseproxy"
-version = "0.1.0"
+name = "mproxy-reverse"
+version = "0.1.1"
 edition = "2021"
 
 license = "MIT"
 readme = "../readme.md"
 repository = "https://github.com/matt24smith/mproxy-dispatcher"
-description = "MPROXY: Reverse-proxy. Forward upstream TCP and/or UDP endpoints to downstream listeners."
+description = "MPROXY: Reverse Proxy. Send upstream data to downstream socket listeners."
+documentation = "https://docs.rs/mproxy-reverse/"
 
 [dependencies]
-mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.0"}
-mproxy-client = {path = "../client", version = "0.1.0"}
-mproxy-server = {path = "../server", version = "0.1.0"}
-mproxy-proxy = {path = "../proxy", version = "0.1.0"}
+mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.1"}
+mproxy-client = {path = "../client", version = "0.1.1"}
+mproxy-forward = {path = "../proxy", version = "0.1.1"}
+mproxy-server = {path = "../server", version = "0.1.1"}
 
 [dependencies.pico-args]
 version = "0.5.0"
