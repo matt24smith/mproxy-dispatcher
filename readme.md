@@ -27,17 +27,17 @@ Packages can be run either from the command line or included as a library.
 Get started with a simple client/server network. Install the command line tools with cargo, and start a UDP listen server on port 9920.
 ```bash
 cargo install mproxy-client mproxy-server
-mproxy-server --listen-addr "localhost:9920" --path streamoutput.log --tee
+mproxy-server --listen-addr "localhost:9920" --path "streamoutput.log" --tee
 ```
-Then send some data from the client to the server. The path option "-" tells the client to read data from stdin. A filepath, descriptor, or handle may also be used.
+Then send some bytes from the client to the server. The path option "-" tells the client to read input from stdin. A filepath, descriptor, or handle may also be used.
 ```bash
-mproxy-client --path "-" --server-addr localhost:9920
+mproxy-client --path "-" --server-addr "localhost:9920"
 > Hello world!
 ```
-You should now see your message appear in `streamoutput.log` (and also on screen if `--tee` is used)
+You should now see your message appear in `streamoutput.log` (and also to stdout if `--tee` is used)
 
 
-### Flexibility and Compatability
+### Compatability
 
 - [X] Windows/Linux/Mac
 - [X] IPv4/IPv6
