@@ -128,7 +128,7 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket
 fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
     // workaround:
     // find the first suitable interface
-    for i in 0..32 {
+    for i in 0..65536 {
         //#[cfg(debug_assertions)]
         //println!("checking interface {}", i);
         let socket = new_sender_ipv6(addr, i)?;
@@ -152,9 +152,9 @@ fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
 pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
     let target_addr = server_addr
         .to_socket_addrs()
-        .unwrap()
+        .expect(format!("parsing server address from {}", server_addr).as_str())
         .next()
-        .expect("parsing server address");
+        .expect(format!("parsing server address from {}", server_addr).as_str());
     let target_socket = match target_addr.is_ipv4() {
         true => new_sender(&target_addr).expect("creating ipv4 send socket!"),
         false => client_check_ipv6_interfaces(&target_addr).expect("creating ipv6 send socket!"),
