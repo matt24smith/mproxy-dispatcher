@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-client"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "mproxy-server",
  "mproxy-socket_dispatch",
@@ -56,7 +56,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-forward"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "mproxy-client",
  "mproxy-server",
@@ -69,7 +69,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-reverse"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "mproxy-client",
  "mproxy-forward",
@@ -81,7 +81,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-server"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "mproxy-client",
  "mproxy-socket_dispatch",
@@ -91,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-socket_dispatch"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "socket2",
 ]
@@ -110,9 +110,9 @@ checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.52"
+version = "1.0.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d0e1ae9e836cc3beddd63db0df682593d7e2d3d891ae8c9083d2113e1744224"
+checksum = "e472a104799c74b514a57226160104aa483546de37e839ec50e3c2e41dd87534"
 dependencies = [
  "unicode-ident",
 ]
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "testconfig"
-version = "0.1.0"
+version = "0.1.6"
 
 [[package]]
 name = "unicode-ident"
