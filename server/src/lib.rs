@@ -65,13 +65,30 @@
 //!
 
 use std::fs::OpenOptions;
-use std::io::{stdout, BufWriter, Write};
-use std::net::{ToSocketAddrs, UdpSocket};
+use std::io::{stdout, BufWriter, Result as ioResult, Write};
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
-//use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 use mproxy_socket_dispatch::BUFSIZE;
+
+pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
+    let addr = listen_addr
+        .to_socket_addrs()
+        .unwrap()
+        .next()
+        .expect("parsing socket address");
+    let listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+    match (addr.ip().is_multicast(), addr.ip()) {
+        (false, std::net::IpAddr::V4(_)) => {}
+        (false, std::net::IpAddr::V6(_)) => {}
+        (true, std::net::IpAddr::V4(ip)) => listen_socket
+            .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
+            .unwrap(),
+        (true, std::net::IpAddr::V6(ip)) => listen_socket.join_multicast_v6(&ip, 0).unwrap(),
+    };
+    Ok((addr, listen_socket))
+}
 
 /// Server UDP socket listener.
 /// Binds to UDP socket address `addr`, and logs input to `logfile`.
@@ -86,23 +103,7 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
     let mut writer = BufWriter::new(file.unwrap());
     let mut output_buffer = BufWriter::new(stdout());
 
-    //let (addr, listen_socket) = upstream_socket_interface(addr).unwrap();
-    let addr = addr
-        .to_socket_addrs()
-        .unwrap()
-        .next()
-        .expect("parsing socket address");
-
-    let listen_socket = UdpSocket::bind(addr).expect("binding server socket");
-    //let ip4: std::net::Ipv4Addr = std::net::IpAddr::V4(addr.ip());
-    match (addr.ip().is_multicast(), addr.ip()) {
-        (true, std::net::IpAddr::V4(ip)) => listen_socket
-            .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
-            .unwrap(),
-        (true, std::net::IpAddr::V6(ip)) => listen_socket.join_multicast_v6(&ip, 0).unwrap(),
-        (false, std::net::IpAddr::V4(_)) => {}
-        (false, std::net::IpAddr::V6(_)) => {}
-    };
+    let (addr, listen_socket) = upstream_socket_interface(addr).unwrap();
 
     Builder::new()
         .name(format!("{}:server", addr))

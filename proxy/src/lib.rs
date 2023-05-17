@@ -85,11 +85,12 @@ use mproxy_socket_dispatch::BUFSIZE;
 /// Forward UDP upstream `listen_addr` to downstream UDP socket addresses.
 /// `listen_addr` may be a multicast address.
 pub fn forward_udp(listen_addr: String, downstream_addrs: &[String], tee: bool) -> JoinHandle<()> {
-    let (_addr, listen_socket) = upstream_socket_interface(listen_addr).unwrap();
+    let (_addr, listen_socket) =
+        upstream_socket_interface(listen_addr).expect("binding server socket listener");
     let mut output_buffer = BufWriter::new(stdout());
     let targets: Vec<(SocketAddr, UdpSocket)> = downstream_addrs
         .iter()
-        .map(|t| target_socket_interface(t).unwrap())
+        .map(|t| target_socket_interface(t).expect("binding client socket sender"))
         .collect();
     let mut buf = [0u8; BUFSIZE]; // receive buffer
     Builder::new()

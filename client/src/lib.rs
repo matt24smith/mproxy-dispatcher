@@ -78,36 +78,42 @@ use std::str::FromStr;
 //use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 use mproxy_socket_dispatch::BUFSIZE;
 
+pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
+    let target_addr = server_addr
+        .to_socket_addrs()
+        .unwrap()
+        .next()
+        .expect("parsing socket address");
+
+    // Binds to a random UDP port for sending to downstream.
+    let unspec: SocketAddr = if target_addr.is_ipv4() {
+        SocketAddr::new(std::net::Ipv4Addr::UNSPECIFIED.into(), 0)
+    } else {
+        SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)
+    };
+
+    let target_socket = UdpSocket::bind(unspec).expect("binding client socket");
+    //target_socket.connect(target_addr)?;
+
+    match (target_addr.ip().is_multicast(), target_addr.ip()) {
+        (true, std::net::IpAddr::V4(ip)) => target_socket
+            .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
+            .unwrap(),
+        (true, std::net::IpAddr::V6(ip)) => target_socket.join_multicast_v6(&ip, 0).unwrap(),
+        (false, std::net::IpAddr::V4(_)) => {}
+        (false, std::net::IpAddr::V6(_)) => {}
+    };
+
+    Ok((target_addr, target_socket))
+}
+
 /// Read bytes from `path` info a buffer, and forward to downstream UDP server addresses.
 /// Optionally copy output to stdout
 pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool) -> ioResult<()> {
     let mut targets = vec![];
 
     for server_addr in server_addrs {
-        let target_addr = server_addr
-            .to_socket_addrs()?
-            .next()
-            .expect("parsing socket address");
-        //let (target_addr, target_socket) = target_socket_interface(&server_addr)?;
-
-        // Binds to a random UDP port for sending to downstream.
-        let unspec: SocketAddr = if target_addr.is_ipv4() {
-            SocketAddr::new(std::net::Ipv4Addr::UNSPECIFIED.into(), 0)
-        } else {
-            SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)
-        };
-
-        let target_socket = UdpSocket::bind(unspec)?;
-        //target_socket.connect(target_addr)?;
-
-        match (target_addr.ip().is_multicast(), target_addr.ip()) {
-            (true, std::net::IpAddr::V4(ip)) => target_socket
-                .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
-                .unwrap(),
-            (true, std::net::IpAddr::V6(ip)) => target_socket.join_multicast_v6(&ip, 0).unwrap(),
-            (false, std::net::IpAddr::V4(_)) => {}
-            (false, std::net::IpAddr::V6(_)) => {}
-        };
+        let (target_addr, target_socket) = target_socket_interface(&server_addr)?;
 
         targets.push((target_addr, target_socket));
         println!(
