@@ -23,7 +23,7 @@
 //!
 //! // downstream UDP socket addresses
 //! let server_addrs =  vec!["127.0.0.1:9919".into(), "localhost:9921".into(), "[ff02::1]:9920".into()];
-//!     
+//!
 //! // copy input to stdout
 //! let tee = true;
 //!
@@ -71,98 +71,12 @@
 
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Result as ioResult, Write};
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
-
-/// New upstream socket on any available UDP port.
-/// Will allow any downstream IP i.e. 0.0.0.0
-fn new_sender(addr: &SocketAddr) -> ioResult<UdpSocket> {
-    let socket = new_socket(addr)?;
-
-    if !addr.is_ipv4() {
-        panic!("invalid socket address type!")
-    }
-    if addr.ip().is_multicast() {
-        //socket.set_multicast_if_v4(&Ipv4Addr::new(0, 0, 0, 0))?;
-        socket.set_multicast_loop_v4(true)?;
-    }
-    let target_addr = SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), 0);
-    socket.set_reuse_address(true)?;
-    bind_socket(&socket, &target_addr)?;
-
-    Ok(socket.into())
-}
-
-/// new data output socket to the client IPv6 address
-/// socket will allow any downstream IP i.e. ::0
-fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket> {
-    //let target_addr = SocketAddr::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0).into(), addr.port());
-    let target_addr = SocketAddr::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0).into(), 0);
-
-    if !addr.is_ipv6() {
-        panic!("invalid socket address type!")
-    }
-
-    let socket = new_socket(addr)?;
-    if addr.ip().is_multicast() {
-        if let Err(e) = socket.set_multicast_if_v6(ipv6_interface) {
-            panic!("setting multicast ipv6 interface: {} {}", ipv6_interface, e);
-        }
-        let _b = socket.set_multicast_loop_v6(true);
-        let _c = bind_socket(&socket, &target_addr);
-
-        assert!(_b.is_ok());
-        if _c.is_err() {
-            panic!("error binding socket {:?}", _c);
-        }
-    }
-    socket.set_reuse_address(true)?;
-    Ok(socket.into())
-}
-
-fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
-    // workaround:
-    // find the first suitable interface
-    for i in 0..65536 {
-        //#[cfg(debug_assertions)]
-        //println!("checking interface {}", i);
-        let socket = new_sender_ipv6(addr, i)?;
-        let result = socket.send_to(b"", addr);
-        if let Ok(_r) = result {
-            //Ok(_r) => {
-            //#[cfg(debug_assertions)]
-            //println!("opened interface {}:\t{}", i, _r);
-            return Ok(socket);
-            //}
-            //Err(e) => {
-            //    eprintln!("err: could not open interface {}:\t{:?}", i, e)
-            //}
-        }
-    }
-    panic!("No suitable network interfaces were found!");
-}
-
-/// Binds to a random UDP port for sending to downstream.
-/// To bind to a specific port, see mproxy_server::upstream_socket_interface
-pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
-    let target_addr = server_addr
-        .to_socket_addrs()
-        .unwrap_or_else(|e| panic!("parsing server address from {}: {}", server_addr, e))
-        .next()
-        .unwrap_or_else(|| panic!("parsing server address from {}", server_addr));
-    let target_socket = match target_addr.is_ipv4() {
-        true => new_sender(&target_addr).expect("creating ipv4 send socket!"),
-        false => client_check_ipv6_interfaces(&target_addr).expect("creating ipv6 send socket!"),
-    };
-    //if target_addr.ip().is_multicast() {
-    target_socket.set_broadcast(true)?;
-    //}
-
-    Ok((target_addr, target_socket))
-}
+//use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
+use mproxy_socket_dispatch::BUFSIZE;
 
 /// Read bytes from `path` info a buffer, and forward to downstream UDP server addresses.
 /// Optionally copy output to stdout
@@ -170,10 +84,34 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
     let mut targets = vec![];
 
     for server_addr in server_addrs {
-        let (target_addr, target_socket) = target_socket_interface(&server_addr)?;
+        let target_addr = server_addr
+            .to_socket_addrs()?
+            .next()
+            .expect("parsing socket address");
+        //let (target_addr, target_socket) = target_socket_interface(&server_addr)?;
+
+        // Binds to a random UDP port for sending to downstream.
+        let unspec: SocketAddr = if target_addr.is_ipv4() {
+            SocketAddr::new(std::net::Ipv4Addr::UNSPECIFIED.into(), 0)
+        } else {
+            SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)
+        };
+
+        let target_socket = UdpSocket::bind(unspec)?;
+        //target_socket.connect(target_addr)?;
+
+        match (target_addr.ip().is_multicast(), target_addr.ip()) {
+            (true, std::net::IpAddr::V4(ip)) => target_socket
+                .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
+                .unwrap(),
+            (true, std::net::IpAddr::V6(ip)) => target_socket.join_multicast_v6(&ip, 0).unwrap(),
+            (false, std::net::IpAddr::V4(_)) => {}
+            (false, std::net::IpAddr::V6(_)) => {}
+        };
+
         targets.push((target_addr, target_socket));
         println!(
-            "logging {}: listening for {}",
+            "logging from {}: sending to {}",
             &path.as_os_str().to_str().unwrap(),
             server_addr,
         );
@@ -219,6 +157,11 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
             target_socket
                 .send_to(&buf[0..c], target_addr)
                 .expect("sending to server socket");
+            /*
+            target_socket
+            .send(&buf[0..c])
+            .expect("sending to server socket");
+            */
         }
         if tee {
             let _o = output_buffer
