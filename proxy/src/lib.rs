@@ -203,9 +203,15 @@ pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle
                         eprintln!("encountered EOF, disconnecting TCP proxy thread...");
                         break;
                     }
-                    target_socket
-                        .send_to(&buf[0..c], target_addr)
-                        .expect("sending to UDP socket");
+                    if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+                        target_socket
+                            .send_to(&buf[0..c], target_addr)
+                            .expect("sending to UDP socket");
+                    } else {
+                        target_socket
+                            .send(&buf[0..c])
+                            .expect("sending to UDP socket");
+                    }
                 }
                 Err(e) => {
                     eprintln!("err: {}", e);
