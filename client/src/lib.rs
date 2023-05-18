@@ -71,7 +71,7 @@
 
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Result as ioResult, Write};
-use std::net::{SocketAddr, ToSocketAddrs, UdpSocket, IpAddr, Ipv6Addr};
+use std::net::{IpAddr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -92,32 +92,34 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
         SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)
     };
 
-    let target_socket;
+    let target_socket = UdpSocket::bind(unspec).expect("binding client socket");
+    //target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
 
-    match (target_addr.ip().is_multicast(), target_addr.ip()) {
-        (false, IpAddr::V4(_)) => {
-            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
-            target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
-        }
-        (false, IpAddr::V6(_)) => {
-            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
-            target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
-        },
-        (true, IpAddr::V4(ip)) => {
-            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
-            target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
-            target_socket
-            .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
-            .unwrap();
-        },
-        (true, IpAddr::V6(ip)) => {
-            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
-            // specify "any available interface" for multicast with index 0
-            target_socket.join_multicast_v6(&ip, 0).unwrap_or_else(|e| panic!("{}", e));
-            target_socket.connect(SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), target_addr.port())).unwrap_or_else(|e| panic!("{}", e));
-            //target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
-        },
-    };
+    if target_addr.ip().is_multicast() {
+        match target_addr.ip() {
+            // join the ipv4 multicast group
+            IpAddr::V4(ip) => {
+                target_socket
+                    .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
+                    .unwrap_or_else(|e| panic!("{}", e));
+            }
+
+            // for multicast ipv6, join the multicast group on an unspecified
+            // interface, then connect to an unspecified remote socket address
+            // with the target port
+            IpAddr::V6(ip) => {
+                target_socket
+                    .join_multicast_v6(&ip, 0) // index 0 for unspecified interface
+                    .unwrap_or_else(|e| panic!("{}", e));
+                target_socket
+                    .connect(SocketAddr::new(
+                        IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+                        target_addr.port(),
+                    ))
+                    .unwrap_or_else(|e| panic!("{}", e));
+            }
+        };
+    }
 
     Ok((target_addr, target_socket))
 }
@@ -171,18 +173,16 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
             continue;
         }
 
-        //#[cfg(debug_assertions)]
-        //println!("\nc:{} |{:?}|", c, String::from_utf8(buf[0..c].to_vec()));
-
         for (target_addr, target_socket) in &targets {
-            target_socket
-                .send_to(&buf[0..c], target_addr)
-                .expect("sending to server socket");
-            /*
-            target_socket
-            .send(&buf[0..c])
-            .expect("sending to server socket");
-            */
+            if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+                target_socket
+                    .send_to(&buf[0..c], target_addr)
+                    .unwrap_or_else(|e| panic!("sending to server socket: {}", e));
+            } else {
+                target_socket
+                    .send(&buf[0..c])
+                    .unwrap_or_else(|e| panic!("sending to server socket: {}", e));
+            }
         }
         if tee {
             let _o = output_buffer

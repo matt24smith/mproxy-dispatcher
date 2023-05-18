@@ -4,8 +4,7 @@ use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
-use mproxy_client::client_socket_stream;
-use mproxy_client::target_socket_interface;
+use mproxy_client::{client_socket_stream, target_socket_interface};
 use mproxy_server::listener;
 
 use testconfig::{truncate, TESTINGDIR};
@@ -13,12 +12,21 @@ use testconfig::{truncate, TESTINGDIR};
 fn demo_client(addr: String, logfile: PathBuf) {
     listener(addr.clone(), logfile.clone(), false);
 
-    sleep(Duration::from_millis(10));
+    sleep(Duration::from_millis(15));
 
-    let (_target_addr, target_socket) = target_socket_interface(&addr).unwrap();
+    let (target_addr, target_socket) = target_socket_interface(&addr).unwrap();
 
     let message = b"Hello from client!";
-    target_socket.send(message).expect("could not send to server!");
+
+    if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+        target_socket
+            .send_to(message, target_addr)
+            .expect("could not send to server!");
+    } else {
+        target_socket
+            .send(message)
+            .expect("could not send to server!");
+    }
 
     let bytes = truncate(logfile.clone());
     assert!(bytes > 0);

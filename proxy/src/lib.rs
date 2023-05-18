@@ -102,9 +102,15 @@ pub fn forward_udp(listen_addr: String, downstream_addrs: &[String], tee: bool) 
                 match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
                         for (target_addr, target_socket) in &targets {
-                            target_socket
-                                .send_to(&buf[0..c], target_addr)
-                                .expect("sending to server socket");
+                            if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+                                target_socket
+                                    .send_to(&buf[0..c], target_addr)
+                                    .unwrap_or_else(|e| panic!("sending to server socket: {}", e));
+                            } else {
+                                target_socket
+                                    .send(&buf[0..c])
+                                    .unwrap_or_else(|e| panic!("sending to server socket: {}", e));
+                            }
                         }
                         if tee {
                             let _o = output_buffer
