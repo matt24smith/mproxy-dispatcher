@@ -1,11 +1,11 @@
 use std::fs::File;
-use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
 use mproxy_client::client_socket_stream;
+use mproxy_client::target_socket_interface;
 use mproxy_server::listener;
 
 use testconfig::{truncate, TESTINGDIR};
@@ -14,19 +14,11 @@ fn demo_client(addr: String, logfile: PathBuf) {
     listener(addr.clone(), logfile.clone(), false);
 
     sleep(Duration::from_millis(10));
-    let target_addr = addr.to_socket_addrs().unwrap().next().unwrap();
 
-    //let (_addr, socket) = target_socket_interface(&addr).expect("Creating socket sender");
-    let unspec: SocketAddr = if target_addr.is_ipv4() {
-        SocketAddr::new(std::net::Ipv4Addr::UNSPECIFIED.into(), 0)
-    } else {
-        SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)
-    };
-    let socket = UdpSocket::bind(&unspec).unwrap();
-    socket.connect(target_addr).unwrap();
+    let (_target_addr, target_socket) = target_socket_interface(&addr).unwrap();
 
     let message = b"Hello from client!";
-    socket.send(message).expect("could not send to server!");
+    target_socket.send(message).expect("could not send to server!");
 
     let bytes = truncate(logfile.clone());
     assert!(bytes > 0);

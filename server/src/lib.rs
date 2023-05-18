@@ -66,7 +66,7 @@
 
 use std::fs::OpenOptions;
 use std::io::{stdout, BufWriter, Result as ioResult, Write};
-use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket, IpAddr, Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
@@ -78,14 +78,23 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
         .unwrap()
         .next()
         .expect("parsing socket address");
-    let listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+    let listen_socket; 
     match (addr.ip().is_multicast(), addr.ip()) {
-        (false, std::net::IpAddr::V4(_)) => {}
-        (false, std::net::IpAddr::V6(_)) => {}
-        (true, std::net::IpAddr::V4(ip)) => listen_socket
-            .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
-            .unwrap(),
-        (true, std::net::IpAddr::V6(ip)) => listen_socket.join_multicast_v6(&ip, 0).unwrap(),
+        (false, std::net::IpAddr::V4(_)) => {
+            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+        }
+        (false, std::net::IpAddr::V6(_)) => {
+            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+        }
+        (true, std::net::IpAddr::V4(ip)) => {
+            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+            listen_socket.join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED).unwrap_or_else(|e| panic!("{}", e));
+        },
+        (true, std::net::IpAddr::V6(ip)) => {
+            listen_socket = UdpSocket::bind(SocketAddr::new(
+                    IpAddr::V6(Ipv6Addr::UNSPECIFIED),addr.port())).expect("binding server socket");
+            // specify "any available interface" with index 0
+            listen_socket.join_multicast_v6(&ip, 0).unwrap_or_else(|e| panic!("{}", e))},
     };
     Ok((addr, listen_socket))
 }
@@ -137,5 +146,5 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
                 }
             }
         })
-        .unwrap()
+    .unwrap()
 }

@@ -71,7 +71,7 @@
 
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Result as ioResult, Write};
-use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket, IpAddr, Ipv6Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -92,16 +92,31 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
         SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)
     };
 
-    let target_socket = UdpSocket::bind(unspec).expect("binding client socket");
-    //target_socket.connect(target_addr)?;
+    let target_socket;
 
     match (target_addr.ip().is_multicast(), target_addr.ip()) {
-        (true, std::net::IpAddr::V4(ip)) => target_socket
+        (false, IpAddr::V4(_)) => {
+            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
+            target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
+        }
+        (false, IpAddr::V6(_)) => {
+            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
+            target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
+        },
+        (true, IpAddr::V4(ip)) => {
+            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
+            target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
+            target_socket
             .join_multicast_v4(&ip, &std::net::Ipv4Addr::UNSPECIFIED)
-            .unwrap(),
-        (true, std::net::IpAddr::V6(ip)) => target_socket.join_multicast_v6(&ip, 0).unwrap(),
-        (false, std::net::IpAddr::V4(_)) => {}
-        (false, std::net::IpAddr::V6(_)) => {}
+            .unwrap();
+        },
+        (true, IpAddr::V6(ip)) => {
+            target_socket = UdpSocket::bind(unspec).expect("binding client socket");
+            // specify "any available interface" for multicast with index 0
+            target_socket.join_multicast_v6(&ip, 0).unwrap_or_else(|e| panic!("{}", e));
+            target_socket.connect(SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), target_addr.port())).unwrap_or_else(|e| panic!("{}", e));
+            //target_socket.connect(target_addr).unwrap_or_else(|e| panic!("{}", e));
+        },
     };
 
     Ok((target_addr, target_socket))
