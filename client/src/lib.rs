@@ -108,20 +108,30 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
             // interface, then connect to an unspecified remote socket address
             // with the target port
             IpAddr::V6(ip) => {
-                #[cfg(not(target_os = "macos"))]
+                #[cfg(target_os = "linux")]
                 let itf = 0; // unspecified
+                             
                 #[cfg(target_os = "macos")]
                 let itf = 12; // en0
-                target_socket
-                    .join_multicast_v6(&ip, itf) // index 0 for unspecified interface
-                    .unwrap_or_else(|e| panic!("{}", e));
+                              //
+                #[cfg(target_os = "windows")]
+                let itf = 0; 
 
-                //#[cfg(not(target_os = "macos"))]
+                #[cfg(not(target_os = "windows"))]
                 target_socket
                     .connect(SocketAddr::new(
                         IpAddr::V6(Ipv6Addr::UNSPECIFIED),
                         target_addr.port(),
                     ))
+                    .unwrap_or_else(|e| panic!("{}", e));
+                
+                #[cfg(target_os = "windows")]
+                target_socket
+                    .connect(target_addr)
+                    .unwrap_or_else(|e| panic!("{}", e));
+                
+                target_socket
+                    .join_multicast_v6(&ip, itf) // index 0 for unspecified interface
                     .unwrap_or_else(|e| panic!("{}", e));
             }
         };

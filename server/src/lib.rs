@@ -87,10 +87,26 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
             listen_socket = UdpSocket::bind(addr).expect("binding server socket");
         }
         (true, std::net::IpAddr::V4(ip)) => {
+            #[cfg(not(target_os = "windows"))]
+            {
             listen_socket = UdpSocket::bind(addr).expect("binding server socket");
             listen_socket
                 .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
                 .unwrap_or_else(|e| panic!("{}", e));
+            }
+            #[cfg(target_os = "windows")]
+            {
+            listen_socket = UdpSocket::bind(SocketAddr::new(
+                IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                addr.port(),
+            ))
+            .expect("binding server socket");
+            
+            listen_socket
+                .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
+                .unwrap_or_else(|e| panic!("{}", e));
+
+            }
         }
         (true, std::net::IpAddr::V6(ip)) => {
             listen_socket = UdpSocket::bind(SocketAddr::new(
@@ -109,14 +125,10 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
                 .join_multicast_v6(&ip, itf)
                 .unwrap_or_else(|e| panic!("{}", e));
 
-            /*
+            #[cfg(target_os = "windows")]
             listen_socket
-                .connect(SocketAddr::new(
-                    IpAddr::V6(Ipv6Addr::UNSPECIFIED),
-                    addr.port(),
-                ))
+                .connect(&addr)
                 .unwrap_or_else(|e| panic!("{}", e));
-            */
         }
     };
     Ok((addr, listen_socket))
@@ -142,16 +154,7 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
         .spawn(move || {
             let mut buf = [0u8; BUFSIZE]; // receive buffer
             loop {
-                let recv = if !addr.ip().is_multicast() {
-                    listen_socket.recv_from(&mut buf[0..])
-                } else {
-                    match addr.ip() {
-                        IpAddr::V4(_) => listen_socket.recv_from(&mut buf[0..]),
-                        IpAddr::V6(_) => Ok((listen_socket.recv(&mut buf[0..]).unwrap(), addr)),
-                    }
-                };
-                println!("GOT {}", String::from_utf8_lossy(&buf[..]));
-                match recv {
+                match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
                         if tee {
                             let _o = output_buffer
