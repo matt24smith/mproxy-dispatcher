@@ -19,9 +19,7 @@ fn demo_client(addr: String, logfile: PathBuf) {
     let message = b"Hello from client!";
 
     if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
-        target_socket
-            .send_to(message, target_addr)
-            .expect("could not send to server!");
+        target_socket.send_to(message, target_addr).unwrap();
     } else {
         target_socket
             .send(message)
@@ -51,7 +49,7 @@ fn test_server_ipv4_multicast() {
 
 #[test]
 fn test_server_ipv6_unicast() {
-    let listen = "[::0]:9902".to_string();
+    let listen = "[::1]:9902".to_string();
     let pathstr = &[TESTINGDIR, "streamoutput_ipv6_unicast.log"].join(&"");
     let logfile: PathBuf = PathBuf::from_str(pathstr).unwrap();
     demo_client(listen, logfile);

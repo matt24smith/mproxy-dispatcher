@@ -98,9 +98,15 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
                 addr.port(),
             ))
             .expect("binding server socket");
+
             // specify "any available interface" with index 0
+            #[cfg(not(target_os = "macos"))]
+            let itf = 0; // unspecified
+            #[cfg(target_os = "macos")]
+            let itf = 12; // en0
+
             listen_socket
-                .join_multicast_v6(&ip, 0)
+                .join_multicast_v6(&ip, itf)
                 .unwrap_or_else(|e| panic!("{}", e));
 
             /*
@@ -110,7 +116,7 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
                     addr.port(),
                 ))
                 .unwrap_or_else(|e| panic!("{}", e));
-                */
+            */
         }
     };
     Ok((addr, listen_socket))
