@@ -21,7 +21,7 @@ Packages can be run either from the command line or included as a library.
 - [X] Leverage benefits of UDP
   - Simple stream aggregation
   - Performant proxy and reverse proxy
-  - UDP multicasting enables stateless, scalable reverse-proxy
+  - UDP multicasting for scalable reverse-proxy
 
 
 ## Quick Start
