@@ -110,12 +110,11 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
             IpAddr::V6(ip) => {
                 #[cfg(target_os = "linux")]
                 let itf = 0; // unspecified
-                             
+
                 #[cfg(target_os = "macos")]
-                let itf = 12; // en0
-                              //
-                #[cfg(target_os = "windows")]
-                let itf = 0; 
+                let itf = default_net::get_default_interface()
+                    .expect("Getting default network interface")
+                    .index;
 
                 #[cfg(not(target_os = "windows"))]
                 target_socket
@@ -124,12 +123,12 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
                         target_addr.port(),
                     ))
                     .unwrap_or_else(|e| panic!("{}", e));
-                
+
                 #[cfg(target_os = "windows")]
                 target_socket
                     .connect(target_addr)
                     .unwrap_or_else(|e| panic!("{}", e));
-                
+
                 target_socket
                     .join_multicast_v6(&ip, itf) // index 0 for unspecified interface
                     .unwrap_or_else(|e| panic!("{}", e));
