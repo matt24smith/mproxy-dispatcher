@@ -109,7 +109,10 @@ pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, Ud
             // with the target port
             IpAddr::V6(ip) => {
                 #[cfg(target_os = "linux")]
-                let itf = 0; // unspecified
+                let itf = 0;
+
+                #[cfg(target_os = "windows")]
+                let itf = 0;
 
                 #[cfg(target_os = "macos")]
                 let itf = default_net::get_default_interface()
