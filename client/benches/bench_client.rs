@@ -9,41 +9,36 @@ use std::thread::sleep;
 use std::thread::Builder;
 use std::time::{Duration, Instant};
 
-extern crate socket_dispatch;
-use socket_dispatch::BUFSIZE;
+const BUFSIZE: usize = 8096;
 
-extern crate server;
-use crate::server::join_unicast;
+extern crate mproxy_server;
+use mproxy_server::upstream_socket_interface;
 
-use client::client_socket_stream;
+use mproxy_client::client_socket_stream;
 
-#[cfg(unix)]
-//#[cfg(not(debug_assertions))]
+#[cfg(all(test, unix))]
 #[bench]
-fn test_client_bitrate(_b: &mut Bencher) {
+fn test_client_bitrate(b: &mut Bencher) {
     let target_addr = "127.0.0.1:9917".to_string();
     let listen_addr = "0.0.0.0:9917".to_string();
 
-    let listen_socket =
-        join_unicast(listen_addr.to_socket_addrs().unwrap().next().unwrap()).unwrap();
+    let (_addr, listen_socket) = upstream_socket_interface(listen_addr).unwrap();
 
     sleep(Duration::from_millis(15));
 
     let mut bytecount: i64 = 0;
     let mut buf = [0u8; BUFSIZE];
 
-    //b.iter(|| {
-    //let target_addr = target_addr.clone();
     let _c = Builder::new().spawn(move || {
         client_socket_stream(&PathBuf::from("/dev/random"), vec![target_addr], false)
     });
 
-    // measure time to send 1Gb of randomized binary data
     let start = Instant::now();
-    while bytecount < 1000000000 {
-        let (c, _remote) = listen_socket.recv_from(&mut buf[0..32767]).unwrap();
+    b.iter(|| {
+        let (c, _remote) = listen_socket.recv_from(&mut buf[0..BUFSIZE]).unwrap();
         bytecount += c as i64;
-    }
+        assert!(c > 0);
+    });
     let elapsed = start.elapsed();
 
     println!(
@@ -52,5 +47,4 @@ fn test_client_bitrate(_b: &mut Bencher) {
         elapsed.as_secs_f32(),
         bytecount as f64 / elapsed.as_secs_f64() / 1000000 as f64
     );
-    //});
 }
