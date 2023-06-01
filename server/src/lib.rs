@@ -19,7 +19,7 @@
 //!
 //! // bind to IPv6 multicast channel on port 9920
 //! let listen_addr: String = "[ff01::1]:9920".into();
-//!     
+//!
 //! // output filepath
 //! let logpath = PathBuf::from("server_demo.log");
 //!
@@ -70,86 +70,65 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket}
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
-use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
+const BUFSIZE: usize = 8096;
 
-/// Client socket handler.
-/// Binds a new UDP socket to the network multicast channel
-fn join_multicast(addr: SocketAddr) -> ioResult<UdpSocket> {
-    // https://bluejekyll.github.io/blog/posts/multicasting-in-rust/
-    #[cfg(debug_assertions)]
-    println!("server broadcasting to: {}", addr.ip());
-    match addr.ip() {
-        IpAddr::V4(ref mdns_v4) => {
-            let socket = new_socket(&addr)?;
-            // join multicast channel on all interfaces
-            socket.join_multicast_v4(mdns_v4, &Ipv4Addr::new(0, 0, 0, 0))?;
-            let bind_result = bind_socket(&socket, &addr);
-            if bind_result.is_err() {
-                panic!("binding to {:?}  {:?}", addr, bind_result);
-            }
-
-            Ok(socket.into())
-        }
-        IpAddr::V6(ref mdns_v6) => {
-            let socket = match new_socket(&addr) {
-                Ok(s) => s,
-                Err(e) => panic!("creating new socket {}", e),
-            };
-            // bind to all interfaces
-            //assert!(socket.set_multicast_if_v6(0).is_ok());
-
-            // disable ipv4->ipv6 multicast rerouting
-            assert!(socket.set_only_v6(true).is_ok());
-
-            /*
-            #[cfg(target_os = "macos")]
-            if socket.set_multicast_if_v6(0).is_err() {
-                //panic!();
-            }
-            */
-
-            // join multicast channel
-            if let Err(e) = socket.join_multicast_v6(mdns_v6, 0) {
-                panic!("joining ipv6 multicast channel: {} {}", mdns_v6, e);
-            }
-            //socket.join_multicast_v6(&Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), addr.port().into())?;
-
-            // enable broadcasting
-            //socket.set_broadcast(true)?;
-
-            let listenaddr = SocketAddr::new(
-                IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
-                addr.port(),
-            );
-            let bind_result = bind_socket(&socket, &listenaddr);
-            if bind_result.is_err() {
-                panic!("binding to {:?}: {:?}", listenaddr, bind_result);
-            }
-
-            Ok(socket.into())
-        }
-    }
-}
-
-fn join_unicast(addr: SocketAddr) -> ioResult<UdpSocket> {
-    let socket = new_socket(&addr)?;
-    bind_socket(&socket, &addr)?;
-    Ok(socket.into())
-}
-
-/// Create a new UDP socket and bind to upstream socket address
-pub fn upstream_socket_interface(addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
-    let addr = addr
+pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
+    let addr = listen_addr
         .to_socket_addrs()
         .unwrap()
         .next()
         .expect("parsing socket address");
-    let listen_socket = match addr.ip().is_multicast() {
-        false => join_unicast(addr).unwrap_or_else(|_| panic!("failed to create unicast socket listener! {}", addr)),
-        true => {match join_multicast(addr) {
-            Ok(s) => s,
-            Err(e) => panic!("failed to create multicast listener on address {}! are you sure this is a valid multicast channel?\n{:?}", addr, e),
-        }},
+    let listen_socket;
+    match (addr.ip().is_multicast(), addr.ip()) {
+        (false, std::net::IpAddr::V4(_)) => {
+            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+        }
+        (false, std::net::IpAddr::V6(_)) => {
+            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+        }
+        (true, std::net::IpAddr::V4(ip)) => {
+            #[cfg(not(target_os = "windows"))]
+            {
+                listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+                listen_socket
+                    .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
+                    .unwrap_or_else(|e| panic!("{}", e));
+            }
+            #[cfg(target_os = "windows")]
+            {
+                listen_socket = UdpSocket::bind(SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                    addr.port(),
+                ))
+                .expect("binding server socket");
+
+                listen_socket
+                    .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
+                    .unwrap_or_else(|e| panic!("{}", e));
+            }
+        }
+        (true, std::net::IpAddr::V6(ip)) => {
+            listen_socket = UdpSocket::bind(SocketAddr::new(
+                IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+                addr.port(),
+            ))
+            .expect("binding server socket");
+
+            // specify "any available interface" with index 0
+            #[cfg(not(target_os = "macos"))]
+            let itf = 0; // unspecified
+            #[cfg(target_os = "macos")]
+            let itf = 12; // en0
+
+            listen_socket
+                .join_multicast_v6(&ip, itf)
+                .unwrap_or_else(|e| panic!("{}", e));
+
+            #[cfg(target_os = "windows")]
+            listen_socket
+                .connect(&addr)
+                .unwrap_or_else(|e| panic!("{}", e));
+        }
     };
     Ok((addr, listen_socket))
 }
@@ -168,6 +147,7 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
     let mut output_buffer = BufWriter::new(stdout());
 
     let (addr, listen_socket) = upstream_socket_interface(addr).unwrap();
+
     Builder::new()
         .name(format!("{}:server", addr))
         .spawn(move || {
@@ -193,6 +173,7 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
                         panic!("{}:server: got an error: {}", addr, err);
                     }
                 }
+
                 writer.flush().unwrap();
                 if tee {
                     output_buffer.flush().unwrap();

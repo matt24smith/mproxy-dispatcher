@@ -80,16 +80,18 @@ use std::thread::{spawn, Builder, JoinHandle};
 
 use mproxy_client::target_socket_interface;
 use mproxy_server::upstream_socket_interface;
-use mproxy_socket_dispatch::BUFSIZE;
+
+const BUFSIZE: usize = 8096;
 
 /// Forward UDP upstream `listen_addr` to downstream UDP socket addresses.
 /// `listen_addr` may be a multicast address.
 pub fn forward_udp(listen_addr: String, downstream_addrs: &[String], tee: bool) -> JoinHandle<()> {
-    let (_addr, listen_socket) = upstream_socket_interface(listen_addr).unwrap();
+    let (_addr, listen_socket) =
+        upstream_socket_interface(listen_addr).expect("binding server socket listener");
     let mut output_buffer = BufWriter::new(stdout());
     let targets: Vec<(SocketAddr, UdpSocket)> = downstream_addrs
         .iter()
-        .map(|t| target_socket_interface(t).unwrap())
+        .map(|t| target_socket_interface(t).expect("binding client socket sender"))
         .collect();
     let mut buf = [0u8; BUFSIZE]; // receive buffer
     Builder::new()
@@ -101,9 +103,15 @@ pub fn forward_udp(listen_addr: String, downstream_addrs: &[String], tee: bool) 
                 match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
                         for (target_addr, target_socket) in &targets {
-                            target_socket
-                                .send_to(&buf[0..c], target_addr)
-                                .expect("sending to server socket");
+                            if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+                                target_socket
+                                    .send_to(&buf[0..c], target_addr)
+                                    .unwrap_or_else(|e| panic!("sending to server socket: {}", e));
+                            } else {
+                                target_socket
+                                    .send(&buf[0..c])
+                                    .unwrap_or_else(|e| panic!("sending to server socket: {}", e));
+                            }
                         }
                         if tee {
                             let _o = output_buffer
@@ -196,9 +204,15 @@ pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle
                         eprintln!("encountered EOF, disconnecting TCP proxy thread...");
                         break;
                     }
-                    target_socket
-                        .send_to(&buf[0..c], target_addr)
-                        .expect("sending to UDP socket");
+                    if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+                        target_socket
+                            .send_to(&buf[0..c], target_addr)
+                            .expect("sending to UDP socket");
+                    } else {
+                        target_socket
+                            .send(&buf[0..c])
+                            .expect("sending to UDP socket");
+                    }
                 }
                 Err(e) => {
                     eprintln!("err: {}", e);

@@ -4,7 +4,7 @@ Streams data over the network.
 
 
 ## About 
-This repo includes four packages: Forward-proxy, reverse-proxy, UDP client, and UDP server. Proxies allow conversion between TCP and UDP, so these blocks can be combined together for complete interoperability with existing networks.  
+This repo includes four packages: Forward-proxy, reverse-proxy, UDP client, and UDP server. Proxies allow conversion between TCP and UDP, so these blocks can be combined together for complete interoperability with existing networks.
 A primary feature is compatability with [UDP Multicast](https://en.wikipedia.org/wiki/Multicast) for intermediate routing and reverse-proxy, enabling dead simple group communication across complex one-to-many or many-to-many data streams, and resulting in scalable reverse-proxy.
 Packages can be run either from the command line or included as a library.
 
@@ -13,14 +13,15 @@ Packages can be run either from the command line or included as a library.
 - [X] Fast
   - Can be deployed in less than 5 minutes
   - 500+ Mbps read/transfer/write speed (UDP)
+  - Stateless multithreaded concurrency
 - [X] Minimal 
   - Zero configuration, logging, or caching
   - Tiny memory footprint, compiled binary sizes ~350KB
-  - No shared resources between threads
+  - Less than 1500 LOC
 - [X] Leverage benefits of UDP
   - Simple stream aggregation
   - Performant proxy and reverse proxy
-  - UDP multicasting enables stateless, scalable reverse-proxy
+  - UDP multicasting for scalable reverse-proxy
 
 
 ## Quick Start
@@ -45,7 +46,6 @@ You should now see your message appear in `streamoutput.log` (and also to stdout
 - [X] TCP/TLS 
   - via forward and reverse proxy 
   - Partial client-side TLS support provided by `rustls` (requires feature `tls` enabled in `mproxy-forward`)
-- [X] Fully transparent routing
 
 
 

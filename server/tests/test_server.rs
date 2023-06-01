@@ -12,14 +12,19 @@ use testconfig::{truncate, TESTINGDIR};
 fn demo_client(addr: String, logfile: PathBuf) {
     listener(addr.clone(), logfile.clone(), false);
 
-    sleep(Duration::from_millis(10));
+    sleep(Duration::from_millis(15));
 
-    let (_addr, socket) = target_socket_interface(&addr).expect("Creating socket sender");
+    let (target_addr, target_socket) = target_socket_interface(&addr).unwrap();
 
     let message = b"Hello from client!";
-    socket
-        .send_to(message, &addr)
-        .expect("could not send to socket!");
+
+    if !(target_addr.is_ipv6() && target_addr.ip().is_multicast()) {
+        target_socket.send_to(message, target_addr).unwrap();
+    } else {
+        target_socket
+            .send(message)
+            .expect("could not send to server!");
+    }
 
     let bytes = truncate(logfile.clone());
     assert!(bytes > 0);
@@ -44,7 +49,7 @@ fn test_server_ipv4_multicast() {
 
 #[test]
 fn test_server_ipv6_unicast() {
-    let listen = "[::0]:9902".to_string();
+    let listen = "[::1]:9902".to_string();
     let pathstr = &[TESTINGDIR, "streamoutput_ipv6_unicast.log"].join(&"");
     let logfile: PathBuf = PathBuf::from_str(pathstr).unwrap();
     demo_client(listen, logfile);
