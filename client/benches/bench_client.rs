@@ -3,7 +3,6 @@
 extern crate test;
 use test::Bencher;
 
-use std::net::ToSocketAddrs;
 use std::path::PathBuf;
 use std::thread::sleep;
 use std::thread::Builder;

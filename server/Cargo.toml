@@ -14,9 +14,6 @@ documentation = "https://docs.rs/mproxy-server/"
 [[bin]]
 name = "mproxy-server"
 
-[dependencies]
-mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.7"}
-
 [dependencies.pico-args]
 version = "0.5.0"
 features = [ "eq-separator",]

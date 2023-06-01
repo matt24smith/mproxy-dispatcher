@@ -75,8 +75,7 @@ use std::net::{IpAddr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-//use mproxy_socket_dispatch::{bind_socket, new_socket, BUFSIZE};
-use mproxy_socket_dispatch::BUFSIZE;
+const BUFSIZE: usize = 8096;
 
 pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
     let target_addr = server_addr

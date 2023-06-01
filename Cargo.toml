@@ -4,7 +4,6 @@ members = [
   "proxy", 
   "reverse_proxy", 
   "server", 
-  "socket_dispatch", 
   "testconfig",
 ]
 

@@ -80,7 +80,8 @@ use std::thread::{spawn, Builder, JoinHandle};
 
 use mproxy_client::target_socket_interface;
 use mproxy_server::upstream_socket_interface;
-use mproxy_socket_dispatch::BUFSIZE;
+
+const BUFSIZE: usize = 8096;
 
 /// Forward UDP upstream `listen_addr` to downstream UDP socket addresses.
 /// `listen_addr` may be a multicast address.

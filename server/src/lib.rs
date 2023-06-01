@@ -70,7 +70,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket}
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
-use mproxy_socket_dispatch::BUFSIZE;
+const BUFSIZE: usize = 8096;
 
 pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
     let addr = listen_addr
@@ -89,23 +89,22 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
         (true, std::net::IpAddr::V4(ip)) => {
             #[cfg(not(target_os = "windows"))]
             {
-            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
-            listen_socket
-                .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
-                .unwrap_or_else(|e| panic!("{}", e));
+                listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+                listen_socket
+                    .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
+                    .unwrap_or_else(|e| panic!("{}", e));
             }
             #[cfg(target_os = "windows")]
             {
-            listen_socket = UdpSocket::bind(SocketAddr::new(
-                IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-                addr.port(),
-            ))
-            .expect("binding server socket");
-            
-            listen_socket
-                .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
-                .unwrap_or_else(|e| panic!("{}", e));
+                listen_socket = UdpSocket::bind(SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                    addr.port(),
+                ))
+                .expect("binding server socket");
 
+                listen_socket
+                    .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
+                    .unwrap_or_else(|e| panic!("{}", e));
             }
         }
         (true, std::net::IpAddr::V6(ip)) => {

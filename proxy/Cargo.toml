@@ -13,7 +13,6 @@ documentation = "https://docs.rs/mproxy-forward/"
 tls = ["dep:rustls", "dep:webpki-roots"]
 
 [dependencies]
-mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.7"}
 mproxy-client = {path = "../client", version = "0.1.7"}
 mproxy-server = {path = "../server", version = "0.1.7"}
 

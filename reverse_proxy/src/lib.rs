@@ -92,7 +92,8 @@ use std::thread::{spawn, JoinHandle};
 
 use mproxy_client::target_socket_interface;
 use mproxy_server::upstream_socket_interface;
-use mproxy_socket_dispatch::BUFSIZE;
+
+const BUFSIZE: usize = 8096;
 
 fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
     #[cfg(debug_assertions)]

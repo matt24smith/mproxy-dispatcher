@@ -11,16 +11,15 @@ use std::thread::Builder;
 use std::time::Duration;
 use std::time::Instant;
 
-extern crate client;
-use client::client_socket_stream;
+extern crate mproxy_client;
+use mproxy_client::client_socket_stream;
 
 extern crate testconfig;
 use testconfig::{truncate, TESTINGDIR};
 
-use server::listener;
+use mproxy_server::listener;
 
 #[cfg(unix)]
-//#[cfg(not(debug_assertions))]
 #[bench]
 fn test_server_bitrate(_b: &mut Bencher) {
     let pathstr = &[TESTINGDIR, "streamoutput_server_test_largefile.log"].join(&"");
