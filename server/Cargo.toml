@@ -18,6 +18,9 @@ name = "mproxy-server"
 version = "0.5.0"
 features = [ "eq-separator",]
 
+[dependencies.net2]
+version = "0.2"
+
 [dev-dependencies]
 mproxy-client = {path = "../client"}
 testconfig = {path = "../testconfig"}

@@ -70,6 +70,8 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket}
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
+use net2::UdpBuilder;
+
 const BUFSIZE: usize = 8096;
 
 pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
@@ -89,7 +91,13 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
         (true, std::net::IpAddr::V4(ip)) => {
             #[cfg(not(target_os = "windows"))]
             {
-                listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+                //listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+                listen_socket = UdpBuilder::new_v4()
+                    .expect("binding ipv4 socket")
+                    .reuse_address(true)
+                    .unwrap()
+                    .bind(addr)
+                    .unwrap();
                 listen_socket
                     .join_multicast_v4(&ip, &Ipv4Addr::UNSPECIFIED)
                     .unwrap_or_else(|e| panic!("{}", e));
@@ -108,11 +116,22 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
             }
         }
         (true, std::net::IpAddr::V6(ip)) => {
+            /*
             listen_socket = UdpSocket::bind(SocketAddr::new(
                 IpAddr::V6(Ipv6Addr::UNSPECIFIED),
                 addr.port(),
             ))
             .expect("binding server socket");
+            */
+            listen_socket = UdpBuilder::new_v6()
+                .expect("binding ipv6 socket")
+                .reuse_address(true)
+                .unwrap()
+                .bind(SocketAddr::new(
+                    IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+                    addr.port(),
+                ))
+                .unwrap();
 
             // specify "any available interface" with index 0
             #[cfg(not(target_os = "macos"))]
