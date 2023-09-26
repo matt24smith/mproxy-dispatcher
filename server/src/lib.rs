@@ -83,10 +83,22 @@ pub fn upstream_socket_interface(listen_addr: String) -> ioResult<(SocketAddr, U
     let listen_socket;
     match (addr.ip().is_multicast(), addr.ip()) {
         (false, std::net::IpAddr::V4(_)) => {
-            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+            //listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+            listen_socket = UdpBuilder::new_v4()
+                .expect("binding ipv4 socket")
+                .reuse_address(true)
+                .unwrap()
+                .bind(addr)
+                .unwrap();
         }
         (false, std::net::IpAddr::V6(_)) => {
-            listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+            //listen_socket = UdpSocket::bind(addr).expect("binding server socket");
+            listen_socket = UdpBuilder::new_v6()
+                .expect("binding ipv6 socket")
+                .reuse_address(true)
+                .unwrap()
+                .bind(addr)
+                .unwrap();
         }
         (true, std::net::IpAddr::V4(ip)) => {
             #[cfg(not(target_os = "windows"))]
