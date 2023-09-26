@@ -1,6 +1,6 @@
 [package]
 name = "mproxy-forward"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 
 license = "MIT"
@@ -13,8 +13,8 @@ documentation = "https://docs.rs/mproxy-forward/"
 tls = ["dep:rustls", "dep:webpki-roots"]
 
 [dependencies]
-mproxy-client = {path = "../client", version = "0.1.7"}
-mproxy-server = {path = "../server", version = "0.1.7"}
+mproxy-client = {path = "../client", version = "0.1.8"}
+mproxy-server = {path = "../server", version = "0.1.8"}
 
 rustls = {version = "0.20", optional = true}
 webpki-roots = {version = "0.22", optional = true}

@@ -138,7 +138,7 @@ checksum = "df39d232f5c40b0891c10216992c2f250c054105cb1e56f0fc9032db6203ecc1"
 
 [[package]]
 name = "mproxy-client"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "default-net",
  "mproxy-server",
@@ -148,7 +148,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-forward"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "mproxy-client",
  "mproxy-server",
@@ -160,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-reverse"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "mproxy-client",
  "mproxy-forward",
@@ -171,7 +171,7 @@ dependencies = [
 
 [[package]]
 name = "mproxy-server"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "mproxy-client",
  "net2",
@@ -363,7 +363,7 @@ dependencies = [
 
 [[package]]
 name = "testconfig"
-version = "0.1.7"
+version = "0.1.8"
 
 [[package]]
 name = "thiserror"

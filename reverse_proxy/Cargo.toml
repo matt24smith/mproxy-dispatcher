@@ -1,6 +1,6 @@
 [package]
 name = "mproxy-reverse"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 
 license = "MIT"
@@ -10,9 +10,9 @@ description = "MPROXY: Reverse Proxy. Send upstream data to downstream socket li
 documentation = "https://docs.rs/mproxy-reverse/"
 
 [dependencies]
-mproxy-client = {path = "../client", version = "0.1.7"}
-mproxy-forward = {path = "../proxy", version = "0.1.7"}
-mproxy-server = {path = "../server", version = "0.1.7"}
+mproxy-client = {path = "../client", version = "0.1.8"}
+mproxy-forward = {path = "../proxy", version = "0.1.8"}
+mproxy-server = {path = "../server", version = "0.1.8"}
 
 [dependencies.pico-args]
 version = "0.5.0"
