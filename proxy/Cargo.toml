@@ -17,7 +17,7 @@ mproxy-client = {path = "../client", version = "0.1.7"}
 mproxy-server = {path = "../server", version = "0.1.7"}
 
 rustls = {version = "0.20", optional = true}
-webpki-roots = {version = "0.22", optional = true}
+webpki-roots = {version = "1.0.10", optional = true}
 
 [dependencies.pico-args]
 version = "0.5.0"
